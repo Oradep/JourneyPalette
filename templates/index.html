@@ -12,80 +12,147 @@
       <div class="site-title">
         <h1>Туристические маршруты</h1>
         {% if current_user.is_authenticated %}
-        <a class="create-route-btn" href="{{ url_for('create_route') }}">Создать маршрут</a>
+          <a class="create-route-btn" href="{{ url_for('create_route') }}">Создать маршрут</a>
         {% endif %}
       </div>
       <div class="user-actions">
         {% if current_user.is_authenticated %}
-        <div class="user-info">
-          <div class="user-details">
-            <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">{{ current_user.username }}</a>
+          <div class="user-info">
+            <div class="user-details">
+              <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">{{ current_user.username }}</a>
+            </div>
+            <a class="avatar" href="{{ url_for('user_profile', user_id=current_user.id) }}">
+              {% if current_user.avatar_url %}
+                <img src="{{ current_user.avatar_url }}" alt="Аватар">
+              {% else %}
+                <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Аватар">
+              {% endif %}
+            </a>
           </div>
-
-          <div class="avatar">
-            {% if current_user.avatar_url %}
-              <img src="{{ current_user.avatar_url }}" alt="Аватар">
-            {% else %}
-              <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Аватар">
-            {% endif %}
-          </div>
-        </div>
         {% else %}
-        <a class="login-btn" href="{{ url_for('login') }}">Войти</a>
+          <a class="login-btn" href="{{ url_for('login') }}">Войти</a>
         {% endif %}
       </div>
     </div>
   </header>
   
-
   <main>
-    {% if routes %}
-      {% for route in routes %}
-      <div class="route-card">
-        <!-- Ссылка для перехода на страницу маршрута -->
-        <a href="{{ url_for('view_route', route_id=route.id) }}">
-          <h2>{{ route.title }}</h2>
-          <p>{{ route.description }}</p>
-        </a>
-        <div class="meta-info">
-          <span>Оценок: {{ route.ratings_count }}</span> |
-          <span>Комментариев: {{ route.comments|length }}</span> |
-          <span>Средний рейтинг: {{ route.average_rating }} ★</span>
-        </div>
-        <div>
-          {% if current_user.is_authenticated and route.user_id == current_user.id %}
-            <a href="{{ url_for('route_history', route_id=route.id) }}">История изменений</a>
-            <a href="{{ url_for('edit_route', route_id=route.id) }}">Редактор</a>
-          {% endif %}
-          <!-- Экспорт -->
-          <div class="export-menu">
-            <button>Экспорт</button>
-            <div class="export-options">
-              <a href="{{ url_for('export_route', route_id=route.id, format='gpx') }}">GPX</a><br>
-              <a href="{{ url_for('export_route', route_id=route.id, format='kml') }}">KML</a><br>
-              <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">KMZ</a>
-            </div>
+    {% if current_user.is_authenticated and current_user.is_moderator and pending_routes %}
+      <h2>Маршруты на модерации</h2>
+      {% for route in pending_routes %}
+        <div class="route-card">
+          <a href="{{ url_for('view_route', route_id=route.id) }}">
+            <h2 class="route-info">{{ route.title }}</h2>
+            <p class="route-info">{{ route.description }}</p>
+          </a>
+          <div class="meta-info">
+            <span>Оценок: {{ route.ratings_count }}</span> |
+            <span>Комментариев: {{ route.comments|length }}</span> |
+            <span>Средний рейтинг: {{ route.average_rating }} ★</span>
           </div>
-          <!-- Форма для оценки звёздами -->
-          {% if current_user.is_authenticated %}
-            <form action="{{ url_for('rate_route', route_id=route.id) }}" method="POST" style="display:inline;">
-              <div class="star-rating">
-                <input type="radio" id="star5-{{ route.id }}" name="rating" value="5" {% if user_ratings.get(route.id) == 5 %}checked{% endif %} required>
-                <label for="star5-{{ route.id }}">★</label>
-                <input type="radio" id="star4-{{ route.id }}" name="rating" value="4" {% if user_ratings.get(route.id) == 4 %}checked{% endif %}>
-                <label for="star4-{{ route.id }}">★</label>
-                <input type="radio" id="star3-{{ route.id }}" name="rating" value="3" {% if user_ratings.get(route.id) == 3 %}checked{% endif %}>
-                <label for="star3-{{ route.id }}">★</label>
-                <input type="radio" id="star2-{{ route.id }}" name="rating" value="2" {% if user_ratings.get(route.id) == 2 %}checked{% endif %}>
-                <label for="star2-{{ route.id }}">★</label>
-                <input type="radio" id="star1-{{ route.id }}" name="rating" value="1" {% if user_ratings.get(route.id) == 1 %}checked{% endif %}>
-                <label for="star1-{{ route.id }}">★</label>
+          <div>
+            {% if current_user.is_authenticated and route.user_id == current_user.id %}
+              <a href="{{ url_for('route_history', route_id=route.id) }}">История изменений</a>
+              <a href="{{ url_for('edit_route', route_id=route.id) }}">Редактор</a>
+            {% endif %}
+            <div class="export-menu">
+              <button>Экспорт</button>
+              <div class="export-options">
+                <a href="{{ url_for('export_route', route_id=route.id, format='gpx') }}">GPX</a><br>
+                <a href="{{ url_for('export_route', route_id=route.id, format='kml') }}">KML</a><br>
+                <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">KMZ</a>
               </div>
-              <button type="submit">Оценить</button>
-            </form>
+            </div>
+            {% if current_user.is_authenticated %}
+              <form action="{{ url_for('rate_route', route_id=route.id) }}" method="POST" style="display:inline;">
+                <div class="star-rating">
+                  <input type="radio" id="star5-{{ route.id }}" name="rating" value="5" {% if user_ratings.get(route.id) == 5 %}checked{% endif %} required>
+                  <label for="star5-{{ route.id }}">★</label>
+                  <input type="radio" id="star4-{{ route.id }}" name="rating" value="4" {% if user_ratings.get(route.id) == 4 %}checked{% endif %}>
+                  <label for="star4-{{ route.id }}">★</label>
+                  <input type="radio" id="star3-{{ route.id }}" name="rating" value="3" {% if user_ratings.get(route.id) == 3 %}checked{% endif %}>
+                  <label for="star3-{{ route.id }}">★</label>
+                  <input type="radio" id="star2-{{ route.id }}" name="rating" value="2" {% if user_ratings.get(route.id) == 2 %}checked{% endif %}>
+                  <label for="star2-{{ route.id }}">★</label>
+                  <input type="radio" id="star1-{{ route.id }}" name="rating" value="1" {% if user_ratings.get(route.id) == 1 %}checked{% endif %}>
+                  <label for="star1-{{ route.id }}">★</label>
+                </div>
+                <button type="submit" class="btn">Оценить</button>
+              </form>
+            {% endif %}
+          </div>
+          {% if not route.moderated and current_user.is_moderator %}
+            <div class="moderation-buttons">
+              <form action="{{ url_for('approve_route', route_id=route.id) }}" method="POST" style="display:inline;">
+                <button type="submit">Принять</button>
+              </form>
+              <!-- <form action="{{ url_for('reject_route', route_id=route.id) }}" method="POST" style="display:inline;">
+                <button type="submit">Отклонить</button>
+              </form> -->
+            </div>
           {% endif %}
         </div>
-      </div>
+      {% endfor %}
+    {% endif %}
+    
+    {% if approved_routes %}
+      {% for route in approved_routes %}
+        <div class="route-card">
+          <a href="{{ url_for('view_route', route_id=route.id) }}">
+            {% if route.photos|length > 0 %}
+              {% set first_photo = route.photos|sort(attribute='order_index')|first %}
+              <img src="{{ url_for('static', filename=first_photo.file_path.replace('static/', '') ) }}" alt="{{ first_photo.caption }}" class="route-photo">
+            {% endif %}
+            <h2>{{ route.title }}</h2>
+            <p>{{ route.description }}</p>
+          </a>
+          <div class="meta-info">
+            <span>Оценок: {{ route.ratings_count }}</span> |
+            <span>Комментариев: {{ route.comments|length }}</span> |
+            <span>Средний рейтинг: {{ route.average_rating }} ★</span>
+          </div>
+          <div>
+            {% if current_user.is_authenticated and route.user_id == current_user.id %}
+              <a href="{{ url_for('route_history', route_id=route.id) }}">История изменений</a>
+              <a href="{{ url_for('edit_route', route_id=route.id) }}">Редактор</a>
+            {% endif %}
+            <div class="export-menu">
+              <button>Экспорт</button>
+              <div class="export-options">
+                <a href="{{ url_for('export_route', route_id=route.id, format='gpx') }}">GPX</a><br>
+                <a href="{{ url_for('export_route', route_id=route.id, format='kml') }}">KML</a><br>
+                <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">KMZ</a>
+              </div>
+            </div><br>
+            {% if current_user.is_authenticated %}
+              <form action="{{ url_for('rate_route', route_id=route.id) }}" method="POST" style="display:inline;">
+                <div class="star-rating">
+                  <input type="radio" id="star5-{{ route.id }}" name="rating" value="5" {% if user_ratings.get(route.id) == 5 %}checked{% endif %} required>
+                  <label for="star5-{{ route.id }}">★</label>
+                  <input type="radio" id="star4-{{ route.id }}" name="rating" value="4" {% if user_ratings.get(route.id) == 4 %}checked{% endif %}>
+                  <label for="star4-{{ route.id }}">★</label>
+                  <input type="radio" id="star3-{{ route.id }}" name="rating" value="3" {% if user_ratings.get(route.id) == 3 %}checked{% endif %}>
+                  <label for="star3-{{ route.id }}">★</label>
+                  <input type="radio" id="star2-{{ route.id }}" name="rating" value="2" {% if user_ratings.get(route.id) == 2 %}checked{% endif %}>
+                  <label for="star2-{{ route.id }}">★</label>
+                  <input type="radio" id="star1-{{ route.id }}" name="rating" value="1" {% if user_ratings.get(route.id) == 1 %}checked{% endif %}>
+                  <label for="star1-{{ route.id }}">★</label>
+                </div>
+                <button type="submit" class="btn">Оценить</button>
+              </form>
+            {% endif %}
+          </div>
+          {% if not route.moderated and current_user.is_moderator %}
+            <div class="moderation-buttons">
+              <form action="{{ url_for('approve_route', route_id=route.id) }}" method="POST" style="display:inline;">
+                <button type="submit">Принять</button>
+              </form>
+              <!-- <form action="{{ url_for('reject_route', route_id=route.id) }}" method="POST" style="display:inline;">
+                <button type="submit">Отклонить</button>
+              </form> -->
+            </div>
+          {% endif %}
+        </div>
       {% endfor %}
     {% else %}
       <p>Маршрутов пока нет.</p>
@@ -93,7 +160,8 @@
   </main>
 
   <footer>
-    <p>&copy; {{ current_year if current_year is defined else 2025 }} Все права защищены</p>
+    <p>&copy;PVBand {{ current_year if current_year is defined else 2025 }} </p>
+    <p>Авторские права не защищены, пж не нарушайте</p>
   </footer>
 </body>
 </html>

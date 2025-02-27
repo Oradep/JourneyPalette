@@ -8,12 +8,23 @@
 </head>
 <body>
   <header>
-    <h1>Профиль {{ user.username }}</h1>
-    <a href="{{ url_for('index') }}">На главную</a>
+    <div class="header-container">
+      <div class="site-title">
+        <h1>Профиль {{ user.username }}</h1>
+      </div>
+      <div class="user-actions">
+          <div class="user-info">
+            <div class="user-details">
+              <a class="profile-link" href="{{ url_for('index') }}">На главную</a>
+            </div>
+          </div>
+      </div>
+    </div>
   </header>
+
+
   <main>
     <div class="profile-section">
-      <!-- Если это профиль текущего пользователя, делаем аватар кликабельным для смены -->
       {% if current_user.is_authenticated and current_user.id == user.id %}
         <div class="avatar" id="avatar-container">
           {% if user.avatar_url %}
@@ -22,12 +33,10 @@
             <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Аватар">
           {% endif %}
         </div>
-        <!-- Форма для загрузки аватара (скрыта) -->
         <form id="avatar-upload-form" action="{{ url_for('upload_avatar') }}" method="POST" enctype="multipart/form-data" class="upload-form">
           <input type="file" name="avatar" id="avatar-input" accept="image/*">
         </form>
       {% else %}
-        <!-- Если это не твой профиль, просто отображаем аватар без возможности его менять -->
         <div class="avatar">
           {% if user.avatar_url %}
             <img src="{{ user.avatar_url }}" alt="Аватар">
@@ -37,7 +46,7 @@
         </div>
       {% endif %}
       <div>
-        <p>Имя: {{ user.username }}</p>
+        <h2><b>{{ user.username }}</b></h2>
       </div>
     </div>
 
@@ -75,20 +84,28 @@
         <p>Нет комментариев</p>
       {% endif %}
     </div>
-    <a href="{{ url_for('logout') }}">Выйти</a>
-    <!-- Можно добавить раздел с историей и ответами на комментарии -->
+
+    <div style='text-align: center;'>
+      <a href="/logout" class="btn">Выйти из аккаунта</a>
+    </div>
+
+
+
+    <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
+
   </main>
-  
+  <footer>
+    <p>&copy;PVBand {{ current_year if current_year is defined else 2025 }} </p>
+    <p>Авторские права не защищены, пж не нарушайте</p>
+  </footer>
   {% if current_user.is_authenticated and current_user.id == user.id %}
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script>
     $(document).ready(function(){
-      // При клике на аватар открывается диалог выбора файла
       $('#avatar-container').on('click', function(){
         $('#avatar-input').click();
       });
       
-      // При выборе файла отправляем его на сервер через AJAX
       $('#avatar-input').on('change', function(){
         var fileInput = $(this)[0];
         if(fileInput.files.length > 0){
@@ -100,7 +117,6 @@
           .then(response => response.json())
           .then(data => {
             if(data.success){
-              // Обновляем аватар на странице
               $('#avatar-container img').attr('src', data.new_avatar_url);
               alert("Аватар успешно обновлён");
             } else {

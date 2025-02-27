@@ -205,10 +205,7 @@ $('#landmark-photo').on('change', function(){
   if(fileInput.files.length > 0){
     var formData = new FormData();
     formData.append('image', fileInput.files[0]);
-    // Если нужно, можно добавить идентификатор достопримечательности или route_id
-    // formData.append('route_id', $('#route-id').val());
-    
-    // Отправляем файл на сервер через AJAX на отдельный маршрут upload_landmark_image
+
     fetch(uploadLandmarkUrl, {
       method: "POST",
       body: formData
@@ -216,7 +213,6 @@ $('#landmark-photo').on('change', function(){
     .then(response => response.json())
     .then(data => {
       if(data.success){
-        // Обновляем предпросмотр и сохраняем URL в currentLandmarkMarker
         $('#landmark-photo-preview').html('<img src="' + data.file_url + '" style="max-height:100px;">');
         if(!currentLandmarkMarker.landmarkData){
           currentLandmarkMarker.landmarkData = {};
@@ -239,8 +235,6 @@ $('#landmark-photo').on('change', function(){
 function saveLandmarkData(e) {
   e.preventDefault();
   if (!currentLandmarkMarker) return;
-  // Обновляем данные достопримечательности с полями, введёнными пользователем,
-  // а поле photo_url уже обновлено через AJAX при выборе файла
   currentLandmarkMarker.landmarkData = {
     name: document.getElementById('landmark-name').value,
     description: document.getElementById('landmark-description').value,
@@ -285,15 +279,13 @@ function deleteLandmarkData(e) {
     updateMultiRoute();
 }
 
-// Автоматический парсинг ближайшего объекта через геокодер Яндекс.Карт
-// При клике по кнопке "Получить данные" для достопримечательности
+
 $('#fetch-yandex-data').on('click', function(){
   const yandexUrl = $('#landmark-yandex-url').val().trim();
   if (!yandexUrl) {
       alert("Введите ссылку с Яндекс.Карт");
       return;
   }
-  // Отправляем AJAX‑запрос на сервер для получения данных по ссылке
   fetch(fetchYandexDataUrl, {
       method: "POST",
       headers: {
@@ -307,7 +299,6 @@ $('#fetch-yandex-data').on('click', function(){
           // Заполняем поля редактора
           $('#landmark-name').val(data.name);
           $('#landmark-description').val(data.description);
-          // Если сервер вернул URL фото, обновляем предпросмотр и сохраняем его в текущем маркере
           if(data.photo_url) {
               $('#landmark-photo-preview').html('<img src="' + data.photo_url + '" style="max-height:100px;">');
               if(!currentLandmarkMarker.landmarkData) {
@@ -327,13 +318,11 @@ $('#fetch-yandex-data').on('click', function(){
   });
 });
 
-// Если пользователь выбирает новый файл для фото достопримечательности, загружаем его автоматически
 $('#landmark-photo').on('change', function(){
   var fileInput = $(this)[0];
   if(fileInput.files.length > 0) {
       var formData = new FormData();
       formData.append('image', fileInput.files[0]);
-      // Опционально, можно добавить идентификатор достопримечательности или route_id
       fetch("{{ url_for('upload_landmark_image') }}", {
           method: "POST",
           body: formData
@@ -341,7 +330,6 @@ $('#landmark-photo').on('change', function(){
       .then(response => response.json())
       .then(data => {
           if(data.success){
-              // Обновляем предпросмотр и сохраняем URL в текущем маркере
               $('#landmark-photo-preview').html('<img src="' + data.file_url + '" style="max-height:100px;">');
               if(!currentLandmarkMarker.landmarkData){
                   currentLandmarkMarker.landmarkData = {};
@@ -365,7 +353,7 @@ function init() {
     if ((typeof rawValue === 'string' && rawValue.length > 5)) {
           let markersParsed;
           try {
-            markersParsed = JSON.parse(JSON.parse(rawValue)); // Двойной парсинг
+            markersParsed = JSON.parse(JSON.parse(rawValue));
           } catch(e) {
             console.error("Ошибка двойного парсинга allMarkers:", e);
           }
@@ -403,7 +391,6 @@ function init() {
       savedMarkers = [];
     }
 
-    // Загружаем данные по достопримечательностям из скрытого поля landmarks
     const landmarksField = document.getElementById('landmarks');
     let savedLandmarks = [];
     try {
@@ -420,7 +407,6 @@ function init() {
       savedLandmarks = [];
     }
 
-    // Инициализация маркеров согласно сохранённым данным
     savedMarkers.forEach(markerData => {
       let isLandmark = false;
       let lmData = {};

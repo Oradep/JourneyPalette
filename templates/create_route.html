@@ -6,7 +6,31 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-  <h1>Создание маршрута</h1>
+  <header>
+    <div class="header-container">
+      <div class="site-title">
+        <h1>Создание маршрута</h1>
+      </div>
+      <div class="user-actions">
+        {% if current_user.is_authenticated %}
+          <div class="user-info">
+            <div class="user-details">
+              <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">{{ current_user.username }}</a>
+            </div>
+            <div class="avatar">
+              {% if current_user.avatar_url %}
+                <img src="{{ current_user.avatar_url }}" alt="Аватар">
+              {% else %}
+                <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Аватар">
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <a class="login-btn" href="{{ url_for('login') }}">Войти</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
   <form action="{{ url_for('create_route') }}" method="POST">
     <div>
       <label for="title">Название маршрута:</label>
@@ -22,6 +46,6 @@
     </div>
     <button type="submit">Создать</button>
   </form>
-  <a href="{{ url_for('index') }}">Назад на главную</a>
+  <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
 </body>
 </html>

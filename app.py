@@ -30,7 +30,8 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    avatar_url = db.Column(db.String(300))  # опционально
+    avatar_url = db.Column(db.String(300)) 
+    is_moderator = db.Column(db.Boolean, default=False)
 
 # Маршрут
 class Route(db.Model):
@@ -100,7 +101,7 @@ class Photo(db.Model):
     file_path = db.Column(db.String(200))
     caption = db.Column(db.String(200))
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
-    order_index = db.Column(db.Integer, default=0)  # новое поле для сортировки
+    order_index = db.Column(db.Integer, default=0)
 
     def to_dict(self):
         return {
@@ -127,20 +128,20 @@ class ChangeHistory(db.Model):
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
     session = db.Column(db.String(100), nullable=True)
 
-# Новая модель для отметок посещения
+# Класс для отметок посещения
 class Visit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
 
-# Модель для оценок маршрутов
+# Класс для оценок маршрутов
 class Rating(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
     rating = db.Column(db.Integer)
 
-# Модель для лайков
+# Класс для лайков
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -181,17 +182,25 @@ def save_markers():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Главная страница
-# Главная страница – передаём словарь с оценками, выставленными текущим пользователем
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        routes = Route.query.filter((Route.is_private == False) | (Route.user_id == current_user.id)).all()
+        if current_user.is_moderator:
+            pending_routes = Route.query.filter_by(is_private=False, moderated=False).all()
+            approved_routes = Route.query.filter(
+                ((Route.is_private == False) | (Route.user_id == current_user.id)) & (Route.moderated == True)
+            ).all()
+        else:
+            pending_routes = []
+            approved_routes = Route.query.filter_by(is_private=False, moderated=True).all()
         user_ratings = {rating.route_id: rating.rating for rating in Rating.query.filter_by(user_id=current_user.id).all()}
     else:
-        routes = Route.query.filter_by(is_private=False).all()
+        pending_routes = []
+        approved_routes = Route.query.filter_by(is_private=False, moderated=True).all()
         user_ratings = {}
-    return render_template('index.html', routes=routes, user_ratings=user_ratings)
+    return render_template('index.html', pending_routes=pending_routes, approved_routes=approved_routes, user_ratings=user_ratings)
+
+
 
 
 # Страница просмотра маршрута
@@ -288,7 +297,6 @@ def export_route(route_id, format):
         flash("Нет доступа к приватному маршруту")
         return redirect(url_for('index'))
     
-    # Загружаем координаты маркеров из сохранённого JSON (если поле пустое – используем пустой список)
     try:
         markers_data = json.loads(route.allMarkers) if route.allMarkers else []
     except Exception:
@@ -296,7 +304,6 @@ def export_route(route_id, format):
 
     format = format.lower()
     if format == 'gpx':
-        # Формируем GPX: список точек внутри <trkseg>
         gpx = ['<?xml version="1.0" encoding="UTF-8"?>',
                '<gpx version="1.1" creator="Tourist Routes">',
                f"<trk><name>{route.title}</name><trkseg>"]
@@ -309,7 +316,6 @@ def export_route(route_id, format):
         data = "\n".join(gpx)
         mime = 'application/gpx+xml'
     elif format == 'kml':
-        # Формируем KML с LineString, координаты в формате "lng,lat,0"
         kml = ['<?xml version="1.0" encoding="UTF-8"?>',
                '<kml xmlns="http://www.opengis.net/kml/2.2">',
                '<Document>',
@@ -322,7 +328,6 @@ def export_route(route_id, format):
         data = "\n".join(kml)
         mime = 'application/vnd.google-earth.kml+xml'
     elif format == 'kmz':
-        # Формируем KML как для KML, затем запаковываем в KMZ (zip-архив с файлом doc.kml)
         kml = ['<?xml version="1.0" encoding="UTF-8"?>',
                '<kml xmlns="http://www.opengis.net/kml/2.2">',
                '<Document>',
@@ -345,7 +350,6 @@ def export_route(route_id, format):
         flash("Неподдерживаемый формат экспорта")
         return redirect(url_for('index'))
     
-    # Для GPX и KML создаем поток с данными
     buffer = io.BytesIO(data.encode('utf-8'))
     buffer.seek(0)
     return send_file(buffer, 
@@ -370,7 +374,7 @@ def rate_route(route_id):
     return redirect(request.referrer or url_for('view_route', route_id=route_id))
 
 
-# AJAX-загрузка комментариев – для каждого комментария получаем оценку из таблицы Rating
+# AJAX-загрузка комментариев
 @app.route('/route/<int:route_id>/comments')
 def route_comments(route_id):
     route = Route.query.get_or_404(route_id)
@@ -440,10 +444,8 @@ def upload_avatar():
     if file.filename == '':
         return jsonify(success=False, error="Файл не выбран")
     if file:
-        # Защищаем оригинальное имя файла
         filename = secure_filename(file.filename)
         ext = os.path.splitext(filename)[1]
-        # Формируем уникальное имя: имя пользователя + текущая дата (UTC) + случайное значение
         unique_filename = f"{current_user.username}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
         upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'avatars')
         os.makedirs(upload_folder, exist_ok=True)
@@ -453,17 +455,14 @@ def upload_avatar():
         except Exception as e:
             return jsonify(success=False, error="Ошибка сохранения файла: " + str(e))
         
-        # Если у пользователя уже есть аватар (и он не дефолтный), удаляем старый файл
         if current_user.avatar_url and 'default-avatar.png' not in current_user.avatar_url:
             old_avatar_path = os.path.join(app.root_path, current_user.avatar_url.lstrip('/'))
             if os.path.exists(old_avatar_path):
                 try:
                     os.remove(old_avatar_path)
                 except Exception as e:
-                    # Логируем ошибку, но не прерываем процесс
                     print("Ошибка удаления старого аватара:", e)
         
-        # Обновляем avatar_url пользователя – формируем URL относительно папки static
         current_user.avatar_url = url_for('static', filename='uploads/avatars/' + unique_filename)
         try:
             db.session.commit()
@@ -505,7 +504,6 @@ def upload_route_images():
         try:
             file.save(file_path)
             file_url = url_for('static', filename='uploads/route_images/' + unique_filename)
-            # Определяем order_index как максимум + 1
             max_order = db.session.query(db.func.max(Photo.order_index)).filter_by(route_id=route_id).scalar() or 0
             new_photo = Photo(file_path=file_url, route_id=route_id, order_index=max_order + 1)
             db.session.add(new_photo)
@@ -576,7 +574,6 @@ def upload_landmark_image():
     if file:
         filename = secure_filename(file.filename)
         ext = os.path.splitext(filename)[1]
-        # Формируем уникальное имя. Здесь можно не привязывать к landmark, так как их может быть добавлено позже.
         unique_filename = f"landmark_{current_user.username}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
         upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'landmark_images')
         os.makedirs(upload_folder, exist_ok=True)
@@ -607,18 +604,14 @@ def fetch_yandex_data():
             return jsonify(success=False, error="Ошибка получения страницы, статус " + str(response.status_code))
         html = response.text
         
-        # Парсим HTML с помощью BeautifulSoup
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Извлекаем название (элемент с классом card-title-view__title-link)
         title_elem = soup.find(class_="card-title-view__title-link")
         extracted_name = title_elem.get_text(strip=True) if title_elem else "Нет названия"
         
-        # Извлекаем описание (элемент с классом business-features-view__valued-value)
         desc_elem = soup.find(class_="business-features-view__valued-value")
         extracted_description = desc_elem.get_text(strip=True) if desc_elem else "Нет описания"
         
-        # Извлекаем URL изображения (элемент с классом img-with-alt, берем атрибут src)
         img_elem = soup.find(class_="img-with-alt")
         extracted_photo_url = img_elem["src"] if img_elem and img_elem.has_attr("src") else ""
         
@@ -629,6 +622,44 @@ def fetch_yandex_data():
     except Exception as e:
         return jsonify(success=False, error=str(e))
 
+
+
+
+
+
+@app.route('/moderation')
+@login_required
+def moderation():
+    if not current_user.is_moderator:
+        flash("Нет доступа к модерации")
+        return redirect(url_for('index'))
+    routes = Route.query.filter_by(is_private=False, moderated=False).all()
+    moderators = User.query.filter_by(is_moderator=True).all()
+    return render_template('moderation.html', routes=routes, moderators=moderators)
+
+@app.route('/moderation/approve/<int:route_id>', methods=['POST'])
+@login_required
+def approve_route(route_id):
+    if not current_user.is_moderator:
+        flash("Нет доступа к модерации")
+        return redirect(url_for('index'))
+    route = Route.query.get_or_404(route_id)
+    route.moderated = True
+    db.session.commit()
+    flash("Маршрут одобрен")
+    return redirect(url_for('index'))
+
+@app.route('/moderation/reject/<int:route_id>', methods=['POST'])
+@login_required
+def reject_route(route_id):
+    if not current_user.is_moderator:
+        flash("Нет доступа к модерации")
+        return redirect(url_for('index'))
+    route = Route.query.get_or_404(route_id)
+    db.session.delete(route)
+    db.session.commit()
+    flash("Маршрут отклонён")
+    return redirect(url_for('index'))
 
 
 

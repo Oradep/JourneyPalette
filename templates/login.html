@@ -6,6 +6,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
+  <header>
+    <div class="header-container" id="login-header">
+      <div class="site-title">
+        <h1 >Авторизация</h1>
+      </div>
+    </div>
+  </header>
   <div class="auth-container">
     <div class="tabs">
       <div id="tab-login" class="tab active">Вход</div>
@@ -58,7 +65,7 @@
       </form>
     </div>
   </div>
-
+  <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
   <script>
     const tabLogin = document.getElementById('tab-login');
     const tabRegister = document.getElementById('tab-register');

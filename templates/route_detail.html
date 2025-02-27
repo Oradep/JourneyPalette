@@ -7,14 +7,31 @@
  
 </head>
 <body>
-  <header>
-    <h1>{{ route.title }}</h1>
-    {% if current_user.is_authenticated %}
-      <a href="{{ url_for('user_profile', user_id=current_user.id) }}">Профиль</a>
-    {% else %}
-      <a href="{{ url_for('login') }}">Войти</a>
-    {% endif %}
-  </header>
+    <header>
+      <div class="header-container">
+        <div class="site-title">
+          <h1>{{ route.title }}</h1>
+        </div>
+        <div class="user-actions">
+          {% if current_user.is_authenticated %}
+            <div class="user-info">
+              <div class="user-details">
+                <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">{{ current_user.username }}</a>
+              </div>
+              <div class="avatar">
+                {% if current_user.avatar_url %}
+                  <img src="{{ current_user.avatar_url }}" alt="Аватар">
+                {% else %}
+                  <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Аватар">
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <a class="login-btn" href="{{ url_for('login') }}">Войти</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
   
   <section>
     <!-- Галерея фотографий маршрута -->
@@ -22,13 +39,12 @@
       {% set sorted_photos = route.photos|sort(attribute='order_index') %}
       <div class="photo-gallery">
         {% for photo in sorted_photos %}
-          {# Если file_path уже содержит "static/", удаляем его, чтобы не дублировать #}
           <img src="{{ url_for('static', filename=photo.file_path.replace('static/', '') ) }}" alt="{{ photo.caption }}" class="route-photo-item">
         {% endfor %}
       </div>
     {% endif %}
     
-    <p>{{ route.description }}</p>
+    <p class="desc">{{ route.description }}</p>
     
     <!-- Отметка посещения -->
     <!-- {% if current_user.is_authenticated %}
@@ -79,8 +95,8 @@
     <!-- Скрытое поле для route.id (если нужно) -->
     <input type="hidden" id="route-id" value="{{ route.id }}">
     
-    <!-- Форма добавления комментария (без поля оценки) -->
     {% if current_user.is_authenticated %}
+    <div class="comment-form-container">
       <h2>Добавить комментарий</h2>
       <form action="{{ url_for('add_comment', route_id=route.id) }}" method="POST">
         <div>
@@ -88,6 +104,7 @@
         </div>
         <button type="submit" class="btn">Отправить</button>
       </form>
+    </div>
     {% endif %}
     
     <!-- Комментарии -->
@@ -96,11 +113,13 @@
       <div id="comments-container"></div>
     </div>
     
-    <a href="{{ url_for('index') }}">Назад на главную</a>
+    <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
   </section>
-  
+  <footer>
+    <p>&copy;PVBand {{ current_year if current_year is defined else 2025 }} </p>
+    <p>Авторские права не защищены, пж не нарушайте</p>
+  </footer>
   <script>
-    // AJAX-загрузка комментариев при нажатии кнопки
     document.getElementById('load-comments').addEventListener('click', function() {
       fetch("{{ url_for('route_comments', route_id=route.id) }}")
         .then(response => response.text())
@@ -111,11 +130,9 @@
     });
   </script>
   
-  <!-- Подключаем сначала jQuery, затем Яндекс.Карты -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://api-maps.yandex.ru/2.1/?apikey=87ec7ba4-2222-482d-b49f-11bdee31019b&lang=ru_RU"></script>
   
-  <!-- Скрипт для отображения маршрута на карте (read-only) -->
   <script src = "{{ url_for('static', filename='js/show_map.js') }}"></script>
   
 </body>
