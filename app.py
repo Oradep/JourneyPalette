@@ -7,13 +7,10 @@ import json
 from werkzeug.utils import secure_filename
 import os
 import uuid
-import csv
 import zipfile
-from lxml import etree
 import requests
 from bs4 import BeautifulSoup
-import pytz
-from pytz import timezone
+from werkzeug.security import generate_password_hash
 
 
 app = Flask(__name__)
@@ -186,19 +183,25 @@ def load_user(user_id):
 def index():
     if current_user.is_authenticated:
         if current_user.is_moderator:
-            pending_routes = Route.query.filter_by(is_private=False, moderated=False).all()
+            pending_routes = Route.query.filter_by(is_private=False, moderated=False)\
+                .order_by(Route.id.desc()).all()
             approved_routes = Route.query.filter(
                 ((Route.is_private == False) | (Route.user_id == current_user.id)) & (Route.moderated == True)
-            ).all()
+            ).order_by(Route.id.desc()).all()
         else:
-            pending_routes = []
-            approved_routes = Route.query.filter_by(is_private=False, moderated=True).all()
+
+            pending_routes = Route.query.filter_by(user_id=current_user.id, is_private=False, moderated=False)\
+                .order_by(Route.id.desc()).all()
+            approved_routes = Route.query.filter_by(is_private=False, moderated=True)\
+                .order_by(Route.id.desc()).all()
         user_ratings = {rating.route_id: rating.rating for rating in Rating.query.filter_by(user_id=current_user.id).all()}
     else:
         pending_routes = []
-        approved_routes = Route.query.filter_by(is_private=False, moderated=True).all()
+        approved_routes = Route.query.filter_by(is_private=False, moderated=True)\
+            .order_by(Route.id.desc()).all()
         user_ratings = {}
     return render_template('index.html', pending_routes=pending_routes, approved_routes=approved_routes, user_ratings=user_ratings)
+
 
 
 
@@ -667,4 +670,12 @@ def reject_route(route_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        admin = User.query.filter_by(username="admin").first()
+        if not admin:
+            admin = User(username="admin", password="superduperadmpass", is_moderator=True)
+            db.session.add(admin)
+            db.session.commit()
+            print("Администратор создан")
+        else:
+            print("Администратор уже существует")
     app.run(host="0.0.0.0", debug=True, port=5050)

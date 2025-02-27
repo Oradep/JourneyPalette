@@ -37,8 +37,13 @@
   </header>
   
   <main>
-    {% if current_user.is_authenticated and current_user.is_moderator and pending_routes %}
-      <h2>Маршруты на модерации</h2>
+    {# Блок для маршрутов, находящихся на модерации #}
+    {% if current_user.is_authenticated and pending_routes %}
+      {% if current_user.is_moderator %}
+        <h2>Маршруты на модерации</h2>
+      {% else %}
+        <h2>Ваши маршруты на модерации</h2>
+      {% endif %}
       {% for route in pending_routes %}
         <div class="route-card">
           <a href="{{ url_for('view_route', route_id=route.id) }}">
@@ -86,16 +91,16 @@
               <form action="{{ url_for('approve_route', route_id=route.id) }}" method="POST" style="display:inline;">
                 <button type="submit">Принять</button>
               </form>
-              <!-- <form action="{{ url_for('reject_route', route_id=route.id) }}" method="POST" style="display:inline;">
-                <button type="submit">Отклонить</button>
-              </form> -->
+              {# Если требуется — можно добавить и кнопку для отклонения #}
             </div>
           {% endif %}
         </div>
       {% endfor %}
     {% endif %}
     
+    {# Блок для одобренных маршрутов #}
     {% if approved_routes %}
+      <h2>Проверенные маршруты</h2>
       {% for route in approved_routes %}
         <div class="route-card">
           <a href="{{ url_for('view_route', route_id=route.id) }}">
@@ -147,9 +152,7 @@
               <form action="{{ url_for('approve_route', route_id=route.id) }}" method="POST" style="display:inline;">
                 <button type="submit">Принять</button>
               </form>
-              <!-- <form action="{{ url_for('reject_route', route_id=route.id) }}" method="POST" style="display:inline;">
-                <button type="submit">Отклонить</button>
-              </form> -->
+              {# Возможность добавить кнопку отклонения при необходимости #}
             </div>
           {% endif %}
         </div>
