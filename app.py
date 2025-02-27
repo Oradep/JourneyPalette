@@ -4,8 +4,14 @@ from flask_login import LoginManager, login_required, login_user, logout_user, c
 from datetime import datetime
 import io
 import json
+from werkzeug.utils import secure_filename
+import os
+import uuid
+
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads', 'avatars')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['SECRET_KEY'] = '322'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tourist_routes.db'
 db = SQLAlchemy(app)
@@ -44,7 +50,6 @@ class Route(db.Model):
     
     @property
     def ratings_count(self):
-        print(self.ratings)
         return self.ratings.count()
         
     
@@ -359,6 +364,78 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+
+
+@app.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    if 'avatar' not in request.files:
+        flash('Файл не выбран', 'error')
+        return redirect(url_for('user_profile', user_id=current_user.id))
+    file = request.files['avatar']
+    if file.filename == '':
+        flash('Файл не выбран', 'error')
+        return redirect(url_for('user_profile', user_id=current_user.id))
+    if file:
+        # Защищаем оригинальное имя файла
+        filename = secure_filename(file.filename)
+        ext = os.path.splitext(filename)[1]
+        # Формируем уникальное имя: имя пользователя + текущая дата + случайное значение
+        unique_filename = f"{current_user.username}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        try:
+            file.save(file_path)
+        except Exception as e:
+            flash('Ошибка сохранения файла: ' + str(e), 'error')
+            return redirect(url_for('user_profile', user_id=current_user.id))
+        
+        # Если у пользователя уже есть аватар, и он не является дефолтным, удаляем старый файл
+        if current_user.avatar_url and 'default-avatar.png' not in current_user.avatar_url:
+            # Предполагаем, что avatar_url имеет вид '/static/uploads/avatars/filename'
+            old_avatar_path = os.path.join(app.root_path, current_user.avatar_url.lstrip('/'))
+            if os.path.exists(old_avatar_path):
+                try:
+                    os.remove(old_avatar_path)
+                except Exception as e:
+                    # Если удалить не удалось, логируем ошибку, но продолжаем
+                    print("Ошибка удаления старого аватара:", e)
+        
+        # Обновляем avatar_url пользователя – формируем URL относительно папки static
+        current_user.avatar_url = url_for('static', filename='uploads/avatars/' + unique_filename)
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash('Ошибка обновления базы данных: ' + str(e), 'error')
+            return redirect(url_for('user_profile', user_id=current_user.id))
+        flash('Аватар успешно обновлён', 'success')
+    else:
+        flash('Некорректный файл', 'error')
+    return redirect(url_for('user_profile', user_id=current_user.id))
+
+
+@app.route('/upload_image', methods=['POST'])
+@login_required
+def upload_image():
+    if 'image' not in request.files:
+        flash('Файл не выбран')
+        return redirect(url_for('user_profile', user_id=current_user.id))
+    file = request.files['image']
+    if file.filename == '':
+        flash('Файл не выбран')
+        return redirect(url_for('user_profile', user_id=current_user.id))
+    filename = secure_filename(file.filename)
+    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], 'images')
+    os.makedirs(upload_path, exist_ok=True)
+    file_path = os.path.join(upload_path, filename)
+    file.save(file_path)
+    # Здесь можно сохранить путь к изображению для дальнейшего использования (например, для маршрутов или достопримечательностей)
+    flash('Изображение успешно загружено')
+    return redirect(url_for('user_profile', user_id=current_user.id))
+
+
+
 
 if __name__ == '__main__':
     with app.app_context():
