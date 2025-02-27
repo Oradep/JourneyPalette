@@ -5,6 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Туристические маршруты</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    /* Пример стилей для подложки маршрута и выпадающего меню экспорта */
+    .route-card {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    .route-card a {
+      text-decoration: none;
+      color: inherit;
+    }
+    .export-menu {
+      position: relative;
+      display: inline-block;
+    }
+    .export-options {
+      display: none;
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ccc;
+      z-index: 100;
+      padding: 5px;
+    }
+    .export-menu:hover .export-options {
+      display: block;
+    }
+    .meta-info {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -12,6 +46,7 @@
     {% if current_user.is_authenticated %}
       <div>
         Привет, {{ current_user.username }}!
+        <a href="{{ url_for('user_profile', user_id=current_user.id) }}">Профиль</a>
         <a href="{{ url_for('logout') }}">Выйти</a>
         <a href="{{ url_for('create_route') }}">Создать маршрут</a>
       </div>
@@ -22,24 +57,44 @@
 
   <main>
     {% if routes %}
-      <ul>
-        {% for route in routes %}
-          <li>
-            <h2>{{ route.title }}</h2>
-            <p>{{ route.description }}</p>
-            <small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small>
-            <div>
-              {% if current_user.is_authenticated and route.user_id == current_user.id %}
-                <a href="{{ url_for('route_history', route_id=route.id) }}">История изменений</a>
-                <a href="{{ url_for('edit_route', route_id=route.id) }}">Редактор</a>
-              {% endif %}
-              <a href="{{ url_for('export_route', route_id=route.id, format='gpx') }}">Экспорт GPX</a>
-              <a href="{{ url_for('export_route', route_id=route.id, format='kml') }}">Экспорт KML</a>
-              <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">Экспорт KMZ</a>
+      {% for route in routes %}
+      <div class="route-card">
+        <!-- Обёртка в ссылку для перехода на страницу маршрута -->
+        <a href="{{ url_for('view_route', route_id=route.id) }}">
+          <h2>{{ route.title }}</h2>
+          <p>{{ route.description }}</p>
+          <small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small>
+        </a>
+        <div class="meta-info">
+          <!-- Заглушки для лайков и комментариев (подсчитываем по соответствующим моделям) -->
+          <span>Лайков: {{ route.likes_count or 0 }}</span> |
+          <span>Комментариев: {{ route.comments|length }}</span>
+        </div>
+        <div>
+          {% if current_user.is_authenticated and route.user_id == current_user.id %}
+            <a href="{{ url_for('route_history', route_id=route.id) }}">История изменений</a>
+            <a href="{{ url_for('edit_route', route_id=route.id) }}">Редактор</a>
+          {% endif %}
+          <!-- Кнопка экспорта с выпадающим меню -->
+          <div class="export-menu">
+            <button>Экспорт</button>
+            <div class="export-options">
+              <a href="{{ url_for('export_route', route_id=route.id, format='gpx') }}">GPX</a><br>
+              <a href="{{ url_for('export_route', route_id=route.id, format='kml') }}">KML</a><br>
+              <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">KMZ</a>
             </div>
-          </li>
-        {% endfor %}
-      </ul>
+          </div>
+          <!-- Если пользователь авторизован – можно оценить маршрут прямо здесь -->
+          {% if current_user.is_authenticated %}
+            <form action="{{ url_for('rate_route', route_id=route.id) }}" method="POST" style="display:inline;">
+              <label for="rating-{{ route.id }}">Оценка:</label>
+              <input type="number" id="rating-{{ route.id }}" name="rating" min="1" max="5" required>
+              <button type="submit">Оценить</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
     {% else %}
       <p>Маршрутов пока нет.</p>
     {% endif %}

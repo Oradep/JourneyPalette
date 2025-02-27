@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ route.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    .btn {
+      padding: 5px 10px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    #comments-container {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ route.title }}</h1>
+    <a href="{{ url_for('user_profile', user_id=current_user.id) }}">Профиль</a>
+  </header>
+  <section>
+    <p>{{ route.description }}</p>
+    <p><small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small></p>
+    
+    <!-- Кнопка отметки посещения -->
+    {% if current_user.is_authenticated %}
+      <form action="{{ url_for('mark_visit', route_id=route.id) }}" method="POST" id="visit-form">
+        <button type="submit" class="btn">Я посетил маршрут</button>
+      </form>
+    {% endif %}
+    
+    <!-- Блок с лайками и оценкой -->
+    <div>
+      <span>Лайков: {{ route.likes_count or 0 }}</span>
+      {% if current_user.is_authenticated %}
+      <form action="{{ url_for('rate_route', route_id=route.id) }}" method="POST" style="display:inline;">
+        <label for="rating">Ваша оценка:</label>
+        <input type="number" name="rating" id="rating" min="1" max="5" required>
+        <button type="submit" class="btn">Оценить</button>
+      </form>
+      {% endif %}
+    </div>
+    
+    <!-- Блок комментариев -->
+    <div id="comments-section">
+      <button id="load-comments" class="btn">Показать комментарии</button>
+      <div id="comments-container"></div>
+    </div>
+    
+    <!-- Форма добавления комментария -->
+    {% if current_user.is_authenticated %}
+    <h2>Добавить комментарий</h2>
+    <form action="{{ url_for('add_comment', route_id=route.id) }}" method="POST">
+      <div>
+        <textarea name="text" placeholder="Ваш комментарий" required></textarea>
+      </div>
+      <div>
+        <label for="rating">Оценка (1-5):</label>
+        <input type="number" name="rating" id="rating" min="1" max="5">
+      </div>
+      <button type="submit">Отправить</button>
+    </form>
+    {% endif %}
+    
+    <a href="{{ url_for('index') }}">Назад на главную</a>
+  </section>
+  
+  <script>
+    // AJAX-загрузка комментариев при нажатии кнопки
+    document.getElementById('load-comments').addEventListener('click', function() {
+      fetch("{{ url_for('route_comments', route_id=route.id) }}")
+        .then(response => response.text())
+        .then(html => {
+          document.getElementById('comments-container').innerHTML = html;
+          // Можно скрыть кнопку после загрузки
+          document.getElementById('load-comments').style.display = 'none';
+        });
+    });
+  </script>
+</body>
+</html>
