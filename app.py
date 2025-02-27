@@ -186,7 +186,8 @@ def view_route(route_id):
     if current_user.is_authenticated:
         rating_obj = Rating.query.filter_by(user_id=current_user.id, route_id=route.id).first()
         user_rating = rating_obj.rating if rating_obj else None
-    return render_template('route_detail.html', route=route, user_rating=user_rating)
+    route_landmarks = [landmark.to_dict() for landmark in route.landmarks]
+    return render_template('route_detail.html', route=route, user_rating=user_rating, route_landmarks=route_landmarks)
 
 # Создание нового маршрута
 @app.route('/route/new', methods=['GET', 'POST'])
