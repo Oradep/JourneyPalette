@@ -1,11 +1,27 @@
-<!-- Этот шаблон возвращает только список комментариев -->
 {% if route.comments %}
   <ul>
     {% for comment in route.comments %}
       <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-        <img src="{{ comment.user.avatar_url or url_for('static', filename='default-avatar.png') }}" 
-             alt="Аватар пользователя" 
-             style="width: 40px; height: 40px; border-radius: 50%;">
+
+
+        <div class="avatar" id="avatar-container">
+          {% if comment.user.avatar_url %}
+            <a href="/user/{{ comment.user.id }}">
+              <img src="{{ comment.user.avatar_url or url_for('static', filename='default-avatar.png') }}" 
+                  alt="Аватар пользователя" 
+                  style="width: 40px; height: 40px; border-radius: 50%;">
+            </a>
+          {% else %}
+          <a href="/user/{{ comment.user.id }}">
+            <img src="{{ url_for('static', filename='images/default-avatar.png') }}"
+                alt="Аватар пользователя" 
+                style="width: 40px; height: 40px; border-radius: 50%;">
+          </a>
+          {% endif %}
+        </div>
+
+
+
         <div>
           <p><strong>{{ comment.user.username }}</strong>: {{ comment.text }}</p>
           <small>
@@ -15,7 +31,7 @@
             {% else %}
               Нет оценки
             {% endif %}
-             | {{ comment.created_at.strftime("%d-%m-%Y %H:%M") }}
+
           </small>
         </div>
       </li>

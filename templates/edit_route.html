@@ -4,74 +4,10 @@
   <meta charset="UTF-8">
   <title>Редактировать маршрут: {{ route.title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/route_editor.css') }}">
   <!-- Подключаем jQuery UI CSS (например, через CDN) -->
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-  <style>
-    #map {
-      height: 500px;
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    /* Стили панели редактирования достопримечательности */
-    #landmark-editor {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 10px;
-      z-index: 1000;
-      width: 300px;
-    }
-    #landmark-editor input, 
-    #landmark-editor textarea {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    /* Стили для предпросмотра новых изображений */
-    #images-preview {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      margin-top: 10px;
-    }
-    #images-preview img {
-      height: 100px;
-      border: 1px solid #ccc;
-      padding: 3px;
-    }
-    /* Контейнер для существующих фото с сортировкой */
-    #existing-photos {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      margin-top: 10px;
-      border: 1px solid #ddd;
-      padding: 5px;
-    }
-    #existing-photos .photo-item {
-      position: relative;
-      cursor: move;
-    }
-    #existing-photos img {
-      height: 100px;
-      border: 1px solid #ccc;
-      padding: 3px;
-    }
-    /* Кнопка удаления фото (крестик) */
-    .delete-photo-btn {
-      position: absolute;
-      top: 0;
-      right: 0;
-      background: rgba(255, 0, 0, 0.8);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-    }
-  </style>
+
 </head>
 <body>
   <h1>Редактировать маршрут</h1>
@@ -128,7 +64,7 @@
     
     <button type="submit">Сохранить изменения маршрута</button>
   </form>
-  
+
   <!-- Кнопка выхода (ссылка на главную) -->
   <a href="{{ url_for('index') }}">Выход</a>
 
@@ -155,7 +91,7 @@
       <button id="delete-landmark">Удалить</button>
     </div>
   </div>
-  
+
   
 
   <!-- Подключаем jQuery, jQuery UI и Яндекс.Карты -->
@@ -168,6 +104,9 @@
   </script>
   <script src="{{ url_for('static', filename='js/edit_route.js') }}"></script>
   
+
+
+
   <!-- Скрипт для предпросмотра, загрузки, сортировки и удаления изображений -->
   <script>
     $(document).ready(function(){

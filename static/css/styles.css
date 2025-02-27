@@ -1,0 +1,342 @@
+/* Подключение шрифта Inter через Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Глобальный сброс стилей */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif; /* Современный шрифт */
+  background-color: #f0f4f8; /* Светлый фон */
+  color: #1a1a1a; /* Тёмный текст */
+  line-height: 1.6;
+}
+
+/* Шапка сайта */
+header {
+  background: linear-gradient(135deg, #003366, #00509e); /* Градиентный фон */
+  color: #fff;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.left-section h1 {
+  font-size: 2em;
+  margin: 0;
+  font-weight: 700;
+}
+
+.create-route-btn {
+  background-color: #ff8c00;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.create-route-btn:hover {
+  background-color: #e07a00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.right-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.profile-link,
+.login-btn {
+  background-color: #ff8c00;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.profile-link:hover,
+.login-btn:hover {
+  background-color: #e07a00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.avatar img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  transition: transform 0.2s;
+}
+
+.avatar img:hover {
+  transform: scale(1.1);
+}
+
+/* Основной контейнер */
+main {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 15px;
+}
+
+/* Карточка маршрута */
+.route-card {
+  background: rgba(255, 255, 255, 0.9); /* Полупрозрачный фон */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px); /* Стеклянный эффект */
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.route-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.route-card a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.route-card h2 {
+  margin-bottom: 10px;
+  color: #003366;
+  font-weight: 700;
+}
+
+.route-card p {
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.meta-info {
+  font-size: 0.9em;
+  color: #777;
+  margin-top: 10px;
+}
+
+/* Меню экспорта */
+.export-menu {
+  position: relative;
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.export-menu button {
+  background-color: #ff8c00;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.export-menu button:hover {
+  background-color: #e07a00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.export-options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  z-index: 100;
+  padding: 5px;
+  min-width: 120px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.export-options a {
+  color: #003366;
+  text-decoration: none;
+  display: block;
+  padding: 5px 10px;
+  transition: background-color 0.2s;
+}
+
+.export-options a:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.export-menu:hover .export-options {
+  display: block;
+}
+
+/* Звёздный рейтинг */
+.star-rating {
+  display: inline-block;
+  direction: rtl;
+  font-size: 1.4em;
+}
+
+.star-rating input[type="radio"] {
+  display: none;
+}
+
+.star-rating label {
+  color: #ccc;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.star-rating input[type="radio"]:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+  color: #ffd700;
+}
+
+/* Кнопки (общие) */
+.btn {
+  display: inline-block;
+  background-color: #228b22;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.btn:hover {
+  background-color: #1e7a1e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Контейнер карты */
+#map {
+  width: 100%;
+  height: 400px;
+  margin: 20px 0;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Галерея фотографий маршрута */
+.photo-gallery {
+  overflow-x: auto;
+  white-space: nowrap;
+  margin: 10px 0;
+  padding-bottom: 10px;
+}
+
+.route-photo-item {
+  display: inline-block;
+  width: 200px;
+  height: auto;
+  margin-right: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  transition: transform 0.2s;
+}
+
+.route-photo-item:hover {
+  transform: scale(1.05);
+}
+
+/* Вкладки */
+.tabs {
+  display: flex;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  margin-right: 5px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  transition: background 0.2s;
+}
+
+.tab.active {
+  background: #fff;
+  border-bottom: 2px solid #fff;
+  font-weight: 600;
+}
+
+/* Контейнер формы */
+.form-container {
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Футер */
+footer {
+  background: linear-gradient(135deg, #003366, #00509e);
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  margin-top: 40px;
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+}
+
+footer p {
+  font-size: 0.9em;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  header, footer {
+    text-align: center;
+  }
+  .header-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .left-section, .right-section {
+    justify-content: center;
+  }
+  .tabs {
+    flex-direction: column;
+  }
+  .tab {
+    margin-bottom: 5px;
+  }
+}

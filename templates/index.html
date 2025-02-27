@@ -5,73 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Туристические маршруты</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-  <style>
-    /* Стили для карточки маршрута и экспорта */
-    .route-card {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      padding: 15px;
-      margin-bottom: 15px;
-      position: relative;
-    }
-    .route-card a {
-      text-decoration: none;
-      color: inherit;
-    }
-    .export-menu {
-      position: relative;
-      display: inline-block;
-    }
-    .export-options {
-      display: none;
-      position: absolute;
-      background: #fff;
-      border: 1px solid #ccc;
-      z-index: 100;
-      padding: 5px;
-    }
-    .export-menu:hover .export-options {
-      display: block;
-    }
-    .meta-info {
-      font-size: 0.9em;
-      color: #555;
-      margin-top: 10px;
-    }
-    /* Стили для звёздного рейтинга */
-    .star-rating {
-      display: inline-block;
-      direction: rtl;
-      font-size: 1.2em;
-    }
-    .star-rating input[type="radio"] {
-      display: none;
-    }
-    .star-rating label {
-      color: #ccc;
-      cursor: pointer;
-    }
-    .star-rating input[type="radio"]:checked ~ label,
-    .star-rating label:hover,
-    .star-rating label:hover ~ label {
-      color: #FFD700;
-    }
-  </style>
 </head>
 <body>
   <header>
-    <h1>Туристические маршруты</h1>
-    {% if current_user.is_authenticated %}
-      <div>
-        Привет, {{ current_user.username }}!
-        <a href="{{ url_for('user_profile', user_id=current_user.id) }}">Профиль</a>
-        <a href="{{ url_for('logout') }}">Выйти</a>
-        <a href="{{ url_for('create_route') }}">Создать маршрут</a>
+    <div class="header-container">
+      <div class="site-title">
+        <h1>Туристические маршруты</h1>
+        {% if current_user.is_authenticated %}
+        <a class="create-route-btn" href="{{ url_for('create_route') }}">Создать маршрут</a>
+        {% endif %}
       </div>
-    {% else %}
-      <a href="{{ url_for('login') }}">Войти</a>
-    {% endif %}
+      <div class="user-actions">
+        {% if current_user.is_authenticated %}
+        <div class="user-info">
+          <div class="user-details">
+            <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">{{ current_user.username }}</a>
+          </div>
+
+          <div class="avatar">
+            {% if current_user.avatar_url %}
+              <img src="{{ current_user.avatar_url }}" alt="Аватар">
+            {% else %}
+              <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Аватар">
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <a class="login-btn" href="{{ url_for('login') }}">Войти</a>
+        {% endif %}
+      </div>
+    </div>
   </header>
+  
 
   <main>
     {% if routes %}
@@ -81,7 +46,6 @@
         <a href="{{ url_for('view_route', route_id=route.id) }}">
           <h2>{{ route.title }}</h2>
           <p>{{ route.description }}</p>
-          <small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small>
         </a>
         <div class="meta-info">
           <span>Оценок: {{ route.ratings_count }}</span> |

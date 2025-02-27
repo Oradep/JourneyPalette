@@ -12,7 +12,8 @@ import zipfile
 from lxml import etree
 import requests
 from bs4 import BeautifulSoup
-
+import pytz
+from pytz import timezone
 
 
 app = Flask(__name__)
@@ -39,26 +40,22 @@ class Route(db.Model):
     description = db.Column(db.Text)
     is_private = db.Column(db.Boolean, default=False)
     moderated = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+
     photos = db.relationship('Photo', backref='route', lazy=True)
     comments = db.relationship('Comment', backref='route', lazy=True)
     changes = db.relationship('ChangeHistory', backref='route', lazy=True)
     landmarks = db.relationship('Landmark', backref='route', lazy=True)
-    
+
     points = db.Column(db.Text, nullable=True)
     allMarkers = db.Column(db.Text, nullable=True)
-    
-    # Отношение к рейтингам
+
     ratings = db.relationship('Rating', backref='route', lazy='dynamic')
     
     @property
     def ratings_count(self):
         return self.ratings.count()
         
-    
     @property
     def average_rating(self):
         ratings_list = self.ratings.all()
@@ -119,7 +116,6 @@ class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
     rating = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
     user = db.relationship('User', backref='comments')
@@ -128,7 +124,6 @@ class Comment(db.Model):
 class ChangeHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     change_desc = db.Column(db.Text)
-    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
     session = db.Column(db.String(100), nullable=True)
 
@@ -137,7 +132,6 @@ class Visit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
-    visited_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Модель для оценок маршрутов
 class Rating(db.Model):
@@ -200,7 +194,7 @@ def index():
     return render_template('index.html', routes=routes, user_ratings=user_ratings)
 
 
-# Страница просмотра маршрута – передаём оценку для текущего пользователя, если она есть
+# Страница просмотра маршрута
 @app.route('/route/<int:route_id>')
 def view_route(route_id):
     route = Route.query.get_or_404(route_id)
@@ -210,6 +204,7 @@ def view_route(route_id):
         user_rating = rating_obj.rating if rating_obj else None
     route_landmarks = [landmark.to_dict() for landmark in route.landmarks]
     return render_template('route_detail.html', route=route, user_rating=user_rating, route_landmarks=route_landmarks)
+
 
 # Создание нового маршрута
 @app.route('/route/new', methods=['GET', 'POST'])
@@ -275,7 +270,6 @@ def add_comment(route_id):
 @app.route('/route/<int:route_id>/visit', methods=['POST'])
 @login_required
 def mark_visit(route_id):
-    # Проверяем, если посещение уже отмечено, можно не добавлять повторно
     existing = Visit.query.filter_by(user_id=current_user.id, route_id=route_id).first()
     if not existing:
         visit = Visit(user_id=current_user.id, route_id=route_id)
@@ -290,29 +284,70 @@ def mark_visit(route_id):
 @login_required
 def export_route(route_id, format):
     route = Route.query.get_or_404(route_id)
-    
     if route.is_private and route.user_id != current_user.id:
         flash("Нет доступа к приватному маршруту")
         return redirect(url_for('index'))
     
+    # Загружаем координаты маркеров из сохранённого JSON (если поле пустое – используем пустой список)
+    try:
+        markers_data = json.loads(route.allMarkers) if route.allMarkers else []
+    except Exception:
+        markers_data = []
+
     format = format.lower()
     if format == 'gpx':
-        data = f"<gpx><trk><name>{route.title}</name></trk></gpx>"
+        # Формируем GPX: список точек внутри <trkseg>
+        gpx = ['<?xml version="1.0" encoding="UTF-8"?>',
+               '<gpx version="1.1" creator="Tourist Routes">',
+               f"<trk><name>{route.title}</name><trkseg>"]
+        for point in markers_data:
+            lat = point.get("lat")
+            lng = point.get("lng")
+            gpx.append(f'<trkpt lat="{lat}" lon="{lng}"></trkpt>')
+        gpx.append("</trkseg></trk>")
+        gpx.append("</gpx>")
+        data = "\n".join(gpx)
         mime = 'application/gpx+xml'
     elif format == 'kml':
-        data = f"<?xml version='1.0'?><kml><Document><name>{route.title}</name></Document></kml>"
+        # Формируем KML с LineString, координаты в формате "lng,lat,0"
+        kml = ['<?xml version="1.0" encoding="UTF-8"?>',
+               '<kml xmlns="http://www.opengis.net/kml/2.2">',
+               '<Document>',
+               f"<name>{route.title}</name>",
+               "<Placemark><LineString><coordinates>"]
+        coordinates = " ".join(f"{point.get('lng')},{point.get('lat')},0" for point in markers_data)
+        kml.append(coordinates)
+        kml.append("</coordinates></LineString></Placemark>")
+        kml.append("</Document></kml>")
+        data = "\n".join(kml)
         mime = 'application/vnd.google-earth.kml+xml'
     elif format == 'kmz':
-        data = f"<?xml version='1.0'?><kml><Document><name>{route.title}</name></Document></kml>"
-        mime = 'application/vnd.google-earth.kmz'
+        # Формируем KML как для KML, затем запаковываем в KMZ (zip-архив с файлом doc.kml)
+        kml = ['<?xml version="1.0" encoding="UTF-8"?>',
+               '<kml xmlns="http://www.opengis.net/kml/2.2">',
+               '<Document>',
+               f"<name>{route.title}</name>",
+               "<Placemark><LineString><coordinates>"]
+        coordinates = " ".join(f"{point.get('lng')},{point.get('lat')},0" for point in markers_data)
+        kml.append(coordinates)
+        kml.append("</coordinates></LineString></Placemark>")
+        kml.append("</Document></kml>")
+        kml_content = "\n".join(kml)
+        kmz_buffer = io.BytesIO()
+        with zipfile.ZipFile(kmz_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("doc.kml", kml_content)
+        kmz_buffer.seek(0)
+        return send_file(kmz_buffer, 
+                         mimetype='application/vnd.google-earth.kmz',
+                         as_attachment=True, 
+                         download_name=f"{route.title}.kmz")
     else:
         flash("Неподдерживаемый формат экспорта")
         return redirect(url_for('index'))
     
-    buffer = io.BytesIO()
-    buffer.write(data.encode('utf-8'))
+    # Для GPX и KML создаем поток с данными
+    buffer = io.BytesIO(data.encode('utf-8'))
     buffer.seek(0)
-    
     return send_file(buffer, 
                      mimetype=mime,
                      as_attachment=True, 

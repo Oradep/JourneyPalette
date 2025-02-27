@@ -11,7 +11,7 @@
     <ul>
       {% for history in histories %}
         <li>
-          <strong>{{ history.changed_at.strftime("%d-%m-%Y %H:%M") }}</strong> – {{ history.change_desc }}
+           – {{ history.change_desc }}
         </li>
       {% endfor %}
     </ul>
