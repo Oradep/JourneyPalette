@@ -21,7 +21,8 @@
       z-index: 1000;
       width: 300px;
     }
-    #landmark-editor input, #landmark-editor textarea {
+    #landmark-editor input, 
+    #landmark-editor textarea {
       width: 100%;
       margin-bottom: 10px;
     }
@@ -56,7 +57,10 @@
     <input type="hidden" name="points" id="points" value='{{ route.points | tojson | safe if route.points else "[]" }}'>
     <input type="hidden" name="allMarkers" id="allMarkers" value='{{ route.allMarkers | tojson | safe if route.allMarkers else "[]" }}'>
     <input type="hidden" name="landmarks" id="landmarks" value='{{ route_landmarks | tojson | safe if route_landmarks else "[]" }}'>
-</form>
+    <!-- Скрытое поле для route.id -->
+    <input type="hidden" name="route_id" id="route-id" value="{{ route.id }}">
+  </form>
+  
   <!-- Кнопка выхода (ссылка на главную) -->
   <a href="{{ url_for('index') }}">Выход</a>
 
@@ -76,11 +80,10 @@
     </div>
   </div>
 
-  <!-- Подключение Яндекс.Карт -->
+  <!-- Подключение Яндекс.Карт и jQuery -->
   <script src="https://api-maps.yandex.ru/2.1/?apikey=87ec7ba4-2222-482d-b49f-11bdee31019b&lang=ru_RU"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script src="{{ url_for('static', filename='js/edit_route.js') }}">
-  
-  </script>
+  <!-- Подключение внешнего скрипта -->
+  <script src="{{ url_for('static', filename='js/edit_route.js') }}"></script>
 </body>
 </html>

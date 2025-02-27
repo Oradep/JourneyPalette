@@ -39,14 +39,14 @@ class Route(db.Model):
     points = db.Column(db.Text, nullable=True)
     allMarkers = db.Column(db.Text, nullable=True)
     
-    # Отношение к лайкам (lazy='dynamic' позволяет вызывать count())
-    likes = db.relationship('Like', backref='route', lazy='dynamic')
     # Отношение к рейтингам
     ratings = db.relationship('Rating', backref='route', lazy='dynamic')
     
     @property
-    def likes_count(self):
-        return self.likes.count()
+    def ratings_count(self):
+        print(self.ratings)
+        return self.ratings.count()
+        
     
     @property
     def average_rating(self):

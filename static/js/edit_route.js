@@ -1,120 +1,111 @@
 $(document).ready(function(){
-    // Функция для отправки AJAX-запроса
-    function autoSave() {
-        var form = $('form'); // Можно уточнить селектор, если на странице несколько форм
-        var formData = form.serialize(); // Собираем данные формы
+  // Функция для отправки AJAX-запроса (автосохранение формы)
+  function autoSave() {
+      var form = $('form');
+      var formData = form.serialize();
+      $.ajax({
+          url: form.attr('action'),
+          method: 'POST',
+          data: formData,
+          success: function(response){
+              console.log('Изменения сохранены');
+          },
+          error: function(){
+              console.error('Ошибка при сохранении');
+          }
+      });
+  }
 
-        $.ajax({
-            url: form.attr('action'),
-            method: 'POST',
-            data: formData,
-            success: function(response){
-                console.log('Изменения сохранены');
-                // Можно добавить уведомление пользователю, например, показать сообщение "Сохранено"
-            },
-            error: function(){
-                console.error('Ошибка при сохранении');
-            }
-        });
-    }
-
-    // Автосохранение при потере фокуса у текстовых полей и textarea
-    $('input[type="text"], textarea').on('blur', function(){
-        autoSave();
-    });
-    
-    // Если нажата клавиша Enter в текстовых полях или textarea, предотвращаем стандартное поведение и сохраняем данные
-    $('input[type="text"], textarea').on('keypress', function(e){
-        if(e.which === 13) {
-            e.preventDefault();
-            autoSave();
-        }
-    });
-
-    // Автосохранение при изменении чекбокса
-    $('input[type="checkbox"]').on('change', function(){
-        autoSave();
-    });
+  // Автосохранение при изменениях в текстовых полях, textarea и чекбоксах
+  $('input[type="text"], textarea').on('blur keypress', function(e){
+      if(e.type === 'keypress' && e.which !== 13) return;
+      if(e.which === 13) e.preventDefault();
+      autoSave();
+  });
+  $('input[type="checkbox"]').on('change', autoSave);
 });
 
-  // Глобальные переменные
-  let map;
-  let allMarkers = [];      // все точки
-  let markers = [];         // обычные точки (синие)
-  let landmarkMarkers = []; // достопримечательности (красные)
-  let multiRoute = null;
-  let currentLandmarkMarker = null; // редактируемый маркер
-  const routeId = "{{ route.id }}";
-  
-  // Генерируем идентификатор сессии при загрузке страницы
-  const sessionId = new Date().getTime().toString() + "_" + Math.random().toString(36).substr(2, 5);
-  console.log(`[${new Date().toISOString()}] Сессия начата: ${sessionId}`);
+// Глобальные переменные для работы с картой и маркерами
+let map;
+let allMarkers = [];      // Все точки
+let markers = [];         // Обычные (синие) точки
+let landmarkMarkers = []; // Достопримечательности (красные) 
+let multiRoute = null;
+let currentLandmarkMarker = null; // Редактируемый маркер
 
-  // Функция автоматического сохранения данных в БД через AJAX
-  function autoSaveMarkers() {
-    const pointsData = JSON.parse(document.getElementById('points').value);
-    const landmarksData = JSON.parse(document.getElementById('landmarks').value);
-    const allmarkersdata = JSON.parse(document.getElementById('allMarkers').value);
-    console.log(`[${new Date().toISOString()}] Автосохранение маркеров. Сессия: ${sessionId}`);
-    fetch('/save_markers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        route_id: routeId,
-        points: pointsData,
-        landmarks: landmarksData,
-        allMarkers: allmarkersdata,
-        session: sessionId
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        console.log(`[${new Date().toISOString()}] Изменения сохранены. Сессия: ${sessionId}`);
-      } else {
-        console.error(`[${new Date().toISOString()}] Ошибка сохранения: `, data.error);
-      }
-    })
-    .catch(err => console.error(`[${new Date().toISOString()}] Ошибка запроса:`, err));
+// Получаем routeId из скрытого поля
+let routeIdElement = document.getElementById('route-id');
+let routeId = routeIdElement ? parseInt(routeIdElement.value, 10) : NaN;
+if(isNaN(routeId)) {
+    console.error("Route id не задан или имеет некорректное значение.");
+}
+
+const sessionId = new Date().getTime().toString() + "_" + Math.random().toString(36).substr(2, 5);
+console.log(`[${new Date().toISOString()}] Сессия начата: ${sessionId}`);
+
+// Функция автосохранения маркеров через AJAX
+function autoSaveMarkers() {
+  if(isNaN(routeId)) {
+      console.error("Автосохранение отменено: routeId не задан.");
+      return;
   }
+  const pointsData = JSON.parse(document.getElementById('points').value);
+  const landmarksData = JSON.parse(document.getElementById('landmarks').value);
+  const allmarkersdata = JSON.parse(document.getElementById('allMarkers').value);
+  console.log(`[${new Date().toISOString()}] Автосохранение маркеров. Сессия: ${sessionId}`);
+  fetch('/save_markers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+          route_id: routeId,
+          points: pointsData,
+          landmarks: landmarksData,
+          allMarkers: allmarkersdata,
+          session: sessionId
+      })
+  })
+  .then(response => response.json())
+  .then(data => {
+      if (data.success) {
+          console.log(`[${new Date().toISOString()}] Изменения сохранены. Сессия: ${sessionId}`);
+      } else {
+          console.error(`[${new Date().toISOString()}] Ошибка сохранения: `, data.error);
+      }
+  })
+  .catch(err => console.error(`[${new Date().toISOString()}] Ошибка запроса:`, err));
+}
 
-  // Обновление скрытых полей и автоматическое сохранение
-  function updateHiddenInputs() {
-    const pointsData = allMarkers.map(marker => {
+// Обновление скрытых полей (сериализация координат маркеров) и вызов автосохранения
+function updateHiddenInputs() {
+  const pointsData = allMarkers.map(marker => {
       const coords = marker.geometry.getCoordinates();
       return { lat: coords[0], lng: coords[1] };
-    });
-
-    const landmarksData = landmarkMarkers.map(marker => {
+  });
+  const landmarksData = landmarkMarkers.map(marker => {
       const coords = marker.geometry.getCoordinates();
       return {
-        lat: coords[0],
-        lng: coords[1],
-        name: marker.landmarkData ? marker.landmarkData.name : '',
-        description: marker.landmarkData ? marker.landmarkData.description : '',
-        photo_url: marker.landmarkData ? marker.landmarkData.photo_url : ''
+          lat: coords[0],
+          lng: coords[1],
+          name: marker.landmarkData ? marker.landmarkData.name : '',
+          description: marker.landmarkData ? marker.landmarkData.description : '',
+          photo_url: marker.landmarkData ? marker.landmarkData.photo_url : ''
       };
-    });
-
-    document.getElementById('allMarkers').value = JSON.stringify(allMarkers.map(marker => {
+  });
+  document.getElementById('allMarkers').value = JSON.stringify(allMarkers.map(marker => {
       const coords = marker.geometry.getCoordinates();
       return { lat: coords[0], lng: coords[1] };
-    }));
-    document.getElementById('landmarks').value = JSON.stringify(landmarksData);
-    document.getElementById('points').value = JSON.stringify(pointsData);
+  }));
+  document.getElementById('landmarks').value = JSON.stringify(landmarksData);
+  document.getElementById('points').value = JSON.stringify(pointsData);
+  console.log(`[${new Date().toISOString()}] Обновление скрытых полей. Сессия: ${sessionId}`);
+  autoSaveMarkers();
+}
 
-    console.log(`[${new Date().toISOString()}] Обновление скрытых полей. Сессия: ${sessionId}`);
-    autoSaveMarkers();
-  }
-
-  // Функция добавления маркера. Параметр isLandmark определяет тип точки.
-  function addMarker(coordsObj, isLandmark, landmarkData = {}, isInit=false) {
+// Функция добавления маркера на карту
+function addMarker(coordsObj, isLandmark, landmarkData = {}, isInit=false) {
     const coords = [coordsObj.lat, coordsObj.lng];
     const marker = new ymaps.Placemark(coords, {}, { draggable: true });
     marker.isLandmark = isLandmark;
-    
     if (isLandmark) {
       marker.options.set('preset', 'islands#redIcon');
       marker.landmarkData = {
@@ -130,45 +121,35 @@ $(document).ready(function(){
       markers.push(marker);
     }
     allMarkers.push(marker);
-
-    // События перетаскивания – обновляем положение и сохраняем изменения
     marker.events.add("drag", updateMultiRoute);
     marker.events.add("dragend", updateHiddenInputs);
-
-    // ЛКМ по маркеру: удаление точки
     marker.events.add("click", function(e) {
       e.preventDefault();
       e.stopPropagation();
       removeMarker(marker);
       updateMultiRoute();
     });
-
-    // ПКМ по маркеру: открытие окна редактирования (точка не создаётся новая)
     marker.events.add("contextmenu", function(e) {
       e.preventDefault();
       e.stopPropagation();
       openLandmarkEditor(marker);
     });
-
     map.geoObjects.add(marker);
-
-    if (!isInit) {
-      updateHiddenInputs();
-    }
+    if (!isInit) updateHiddenInputs();
     return marker;
-  }
+}
 
-  // Удаление маркера с карты и из массивов
-  function removeMarker(marker) {
+// Удаление маркера с карты и из массивов
+function removeMarker(marker) {
     map.geoObjects.remove(marker);
     markers = markers.filter(m => m !== marker);
     allMarkers = allMarkers.filter(m => m !== marker);
     landmarkMarkers = landmarkMarkers.filter(m => m !== marker);
     updateHiddenInputs();
-  }
+}
 
-  // Обновление мультимаршрута по обычным точкам
-  function updateMultiRoute() {
+// Обновление мультимаршрута по обычным точкам
+function updateMultiRoute() {
     const referencePoints = allMarkers;
     if (multiRoute) {
       map.geoObjects.remove(multiRoute);
@@ -194,10 +175,10 @@ $(document).ready(function(){
       });
       map.geoObjects.add(multiRoute);
     }
-  }
+}
 
-  // Открытие окна редактирования для выбранного маркера
-  function openLandmarkEditor(marker) {
+// Открытие окна редактирования для выбранного маркера
+function openLandmarkEditor(marker) {
     currentLandmarkMarker = marker;
     if (!marker.originalLandmarkData) {
       marker.originalLandmarkData = Object.assign({}, marker.landmarkData);
@@ -207,10 +188,10 @@ $(document).ready(function(){
     document.getElementById('landmark-photo').value = marker.landmarkData ? marker.landmarkData.photo_url : '';
     document.getElementById('landmark-editor').style.display = 'block';
     fetchNearbyObject(marker);
-  }
+}
 
-  // Сохранение данных редактирования. Если точка не была достопримечательностью – переводим её в этот режим
-  function saveLandmarkData(e) {
+// Сохранение данных редактирования (перевод маркера в режим достопримечательности)
+function saveLandmarkData(e) {
     e.preventDefault();
     if (!currentLandmarkMarker) return;
     currentLandmarkMarker.landmarkData = {
@@ -219,7 +200,6 @@ $(document).ready(function(){
       photo_url: document.getElementById('landmark-photo').value
     };
     currentLandmarkMarker.properties.set('hintContent', currentLandmarkMarker.landmarkData.name || 'Достопримечательность');
-
     if (!currentLandmarkMarker.isLandmark) {
       currentLandmarkMarker.isLandmark = true;
       currentLandmarkMarker.options.set('preset', 'islands#redIcon');
@@ -231,10 +211,10 @@ $(document).ready(function(){
     delete currentLandmarkMarker.originalLandmarkData;
     document.getElementById('landmark-editor').style.display = 'none';
     currentLandmarkMarker = null;
-  }
+}
 
-  // Отмена редактирования – восстанавливаем исходные данные
-  function cancelLandmarkEdit(e) {
+// Отмена редактирования
+function cancelLandmarkEdit(e) {
     e.preventDefault();
     if (currentLandmarkMarker && currentLandmarkMarker.originalLandmarkData) {
       currentLandmarkMarker.landmarkData = Object.assign({}, currentLandmarkMarker.originalLandmarkData);
@@ -245,10 +225,10 @@ $(document).ready(function(){
     document.getElementById('landmark-editor').style.display = 'none';
     currentLandmarkMarker = null;
     updateHiddenInputs();
-  }
+}
 
-  // Удаление точки через окно редактирования
-  function deleteLandmarkData(e) {
+// Удаление точки через окно редактирования
+function deleteLandmarkData(e) {
     e.preventDefault();
     if (currentLandmarkMarker) {
       removeMarker(currentLandmarkMarker);
@@ -256,10 +236,10 @@ $(document).ready(function(){
     document.getElementById('landmark-editor').style.display = 'none';
     currentLandmarkMarker = null;
     updateMultiRoute();
-  }
+}
 
-  // Автоматический парсинг ближайшего объекта через геокодер Яндекс.Карт
-  function fetchNearbyObject(marker) {
+// Автоматический парсинг ближайшего объекта через геокодер Яндекс.Карт
+function fetchNearbyObject(marker) {
     const coords = marker.geometry.getCoordinates();
     ymaps.geocode(coords, { results: 1 }).then(function(res) {
       const firstObject = res.geoObjects.get(0);
@@ -280,29 +260,36 @@ $(document).ready(function(){
         updateHiddenInputs();
       }
     });
-  }
+}
 
-  function init() {
-      const rawValue = document.getElementById('allMarkers').value;
-      if (Array.isArray(rawValue) && rawValue.length === 2 || typeof rawValue === 'string' && rawValue.length > 5){
-          let markers;
-          markers = JSON.parse(JSON.parse(rawValue)); // Двойной парсинг
-          const firstMarker = markers[0];
-          const lat = firstMarker?.lat;
-          const lng = firstMarker?.lng;
-          center = [lat, lng];
-      } else {
-          center = ['55.755864', '37.617698']
-      }
-
-
+function init() {
+    let center;
+    const rawValue = document.getElementById('allMarkers').value;
+    if ((typeof rawValue === 'string' && rawValue.length > 5)) {
+          let markersParsed;
+          try {
+            markersParsed = JSON.parse(JSON.parse(rawValue)); // Двойной парсинг
+          } catch(e) {
+            console.error("Ошибка двойного парсинга allMarkers:", e);
+          }
+          if (markersParsed && markersParsed.length > 0) {
+            const firstMarker = markersParsed[0];
+            const lat = firstMarker?.lat;
+            const lng = firstMarker?.lng;
+            center = [lat, lng];
+          } else {
+            center = ['55.755864', '37.617698'];
+          }
+    } else {
+          center = ['55.755864', '37.617698'];
+    }
 
     map = new ymaps.Map("map", {
       center: center,
       zoom: 10
     });
 
-    // Загружаем все маркеры из скрытого поля allMarkers
+    // Загружаем маркеры из скрытого поля allMarkers
     const allMarkersField = document.getElementById('allMarkers');
     let savedMarkers = [];
     try {
@@ -336,7 +323,7 @@ $(document).ready(function(){
       savedLandmarks = [];
     }
 
-    // Инициализация маркеров согласно порядку в savedMarkers
+    // Инициализация маркеров согласно сохранённым данным
     savedMarkers.forEach(markerData => {
       let isLandmark = false;
       let lmData = {};
@@ -352,7 +339,7 @@ $(document).ready(function(){
 
     updateMultiRoute();
 
-    // ЛКМ по карте: добавляем обычную точку
+    // ЛКМ по карте: добавляем новую точку
     map.events.add("click", function(e) {
       if (!e.get("target") || !e.get("target").geometry) {
         const coords = e.get("coords");
@@ -361,7 +348,7 @@ $(document).ready(function(){
       }
     });
 
-    // ПКМ по карте: если клик вне объектов, создаём новую точку и открываем окно редактирования
+    // ПКМ по карте: создаём новую точку и открываем окно редактирования
     map.events.add("contextmenu", function(e) {
       const target = e.get("target");
       if (target && target.geometry) return;
@@ -376,9 +363,9 @@ $(document).ready(function(){
     document.getElementById('save-landmark').addEventListener('click', saveLandmarkData);
     document.getElementById('cancel-landmark').addEventListener('click', cancelLandmarkEdit);
     document.getElementById('delete-landmark').addEventListener('click', deleteLandmarkData);
-  }
+}
 
-  ymaps.ready(() => {
+ymaps.ready(() => {
     console.log(`[${new Date().toISOString()}] Yandex Maps API загружен`);
     init();
-  });
+});
