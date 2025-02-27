@@ -4,7 +4,15 @@
     {% for comment in route.comments %}
       <li>
         <p>{{ comment.text }}</p>
-        <small>Оценка: {{ comment.rating }} | {{ comment.created_at.strftime("%d-%m-%Y %H:%M") }}</small>
+        <small>
+          Оценка: 
+          {% if ratings[comment.id] is not none %}
+            {{ ratings[comment.id] }} ★
+          {% else %}
+            Нет оценки
+          {% endif %}
+           | {{ comment.created_at.strftime("%d-%m-%Y %H:%M") }}
+        </small>
       </li>
     {% endfor %}
   </ul>

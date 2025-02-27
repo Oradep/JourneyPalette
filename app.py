@@ -39,10 +39,22 @@ class Route(db.Model):
     points = db.Column(db.Text, nullable=True)
     allMarkers = db.Column(db.Text, nullable=True)
     
-    # Для подсчёта лайков в шаблонах
+    # Отношение к лайкам (lazy='dynamic' позволяет вызывать count())
+    likes = db.relationship('Like', backref='route', lazy='dynamic')
+    # Отношение к рейтингам
+    ratings = db.relationship('Rating', backref='route', lazy='dynamic')
+    
     @property
     def likes_count(self):
-        return Like.query.filter_by(route_id=self.id).count()
+        return self.likes.count()
+    
+    @property
+    def average_rating(self):
+        ratings_list = self.ratings.all()
+        if ratings_list:
+            return round(sum(r.rating for r in ratings_list) / len(ratings_list), 1)
+        return 0
+
 
 # Модель достопримечательности
 class Landmark(db.Model):
@@ -154,19 +166,27 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # Главная страница
+# Главная страница – передаём словарь с оценками, выставленными текущим пользователем
 @app.route('/')
 def index():
     if current_user.is_authenticated:
         routes = Route.query.filter((Route.is_private == False) | (Route.user_id == current_user.id)).all()
+        user_ratings = {rating.route_id: rating.rating for rating in Rating.query.filter_by(user_id=current_user.id).all()}
     else:
         routes = Route.query.filter_by(is_private=False).all()
-    return render_template('index.html', routes=routes)
+        user_ratings = {}
+    return render_template('index.html', routes=routes, user_ratings=user_ratings)
 
-# Страница просмотра маршрута (детали маршрута)
+
+# Страница просмотра маршрута – передаём оценку для текущего пользователя, если она есть
 @app.route('/route/<int:route_id>')
 def view_route(route_id):
     route = Route.query.get_or_404(route_id)
-    return render_template('route_detail.html', route=route)
+    user_rating = None
+    if current_user.is_authenticated:
+        rating_obj = Rating.query.filter_by(user_id=current_user.id, route_id=route.id).first()
+        user_rating = rating_obj.rating if rating_obj else None
+    return render_template('route_detail.html', route=route, user_rating=user_rating)
 
 # Создание нового маршрута
 @app.route('/route/new', methods=['GET', 'POST'])
@@ -278,11 +298,16 @@ def rate_route(route_id):
         db.session.commit()
     return redirect(request.referrer or url_for('view_route', route_id=route_id))
 
-# AJAX-загрузка комментариев для маршрута
+
+# AJAX-загрузка комментариев – для каждого комментария получаем оценку из таблицы Rating
 @app.route('/route/<int:route_id>/comments')
 def route_comments(route_id):
     route = Route.query.get_or_404(route_id)
-    return render_template('route_comments.html', route=route)
+    ratings = {}
+    for comment in route.comments:
+         rating_obj = Rating.query.filter_by(user_id=comment.user_id, route_id=route.id).first()
+         ratings[comment.id] = rating_obj.rating if rating_obj else None
+    return render_template('route_comments.html', route=route, ratings=ratings)
 
 # Личный кабинет пользователя
 @app.route('/user/<int:user_id>')

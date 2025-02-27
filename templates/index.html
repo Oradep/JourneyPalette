@@ -6,7 +6,7 @@
   <title>Туристические маршруты</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   <style>
-    /* Пример стилей для подложки маршрута и выпадающего меню экспорта */
+    /* Стили для карточки маршрута и экспорта */
     .route-card {
       background: #f9f9f9;
       border: 1px solid #ddd;
@@ -38,6 +38,24 @@
       color: #555;
       margin-top: 10px;
     }
+    /* Стили для звёздного рейтинга */
+    .star-rating {
+      display: inline-block;
+      direction: rtl;
+      font-size: 1.2em;
+    }
+    .star-rating input[type="radio"] {
+      display: none;
+    }
+    .star-rating label {
+      color: #ccc;
+      cursor: pointer;
+    }
+    .star-rating input[type="radio"]:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+      color: #FFD700;
+    }
   </style>
 </head>
 <body>
@@ -59,23 +77,23 @@
     {% if routes %}
       {% for route in routes %}
       <div class="route-card">
-        <!-- Обёртка в ссылку для перехода на страницу маршрута -->
+        <!-- Ссылка для перехода на страницу маршрута -->
         <a href="{{ url_for('view_route', route_id=route.id) }}">
           <h2>{{ route.title }}</h2>
           <p>{{ route.description }}</p>
           <small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small>
         </a>
         <div class="meta-info">
-          <!-- Заглушки для лайков и комментариев (подсчитываем по соответствующим моделям) -->
-          <span>Лайков: {{ route.likes_count or 0 }}</span> |
-          <span>Комментариев: {{ route.comments|length }}</span>
+          <span>Лайков: {{ route.likes_count }}</span> |
+          <span>Комментариев: {{ route.comments|length }}</span> |
+          <span>Средний рейтинг: {{ route.average_rating }} ★</span>
         </div>
         <div>
           {% if current_user.is_authenticated and route.user_id == current_user.id %}
             <a href="{{ url_for('route_history', route_id=route.id) }}">История изменений</a>
             <a href="{{ url_for('edit_route', route_id=route.id) }}">Редактор</a>
           {% endif %}
-          <!-- Кнопка экспорта с выпадающим меню -->
+          <!-- Экспорт -->
           <div class="export-menu">
             <button>Экспорт</button>
             <div class="export-options">
@@ -84,11 +102,21 @@
               <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">KMZ</a>
             </div>
           </div>
-          <!-- Если пользователь авторизован – можно оценить маршрут прямо здесь -->
+          <!-- Форма для оценки звёздами -->
           {% if current_user.is_authenticated %}
             <form action="{{ url_for('rate_route', route_id=route.id) }}" method="POST" style="display:inline;">
-              <label for="rating-{{ route.id }}">Оценка:</label>
-              <input type="number" id="rating-{{ route.id }}" name="rating" min="1" max="5" required>
+              <div class="star-rating">
+                <input type="radio" id="star5-{{ route.id }}" name="rating" value="5" {% if user_ratings.get(route.id) == 5 %}checked{% endif %} required>
+                <label for="star5-{{ route.id }}">★</label>
+                <input type="radio" id="star4-{{ route.id }}" name="rating" value="4" {% if user_ratings.get(route.id) == 4 %}checked{% endif %}>
+                <label for="star4-{{ route.id }}">★</label>
+                <input type="radio" id="star3-{{ route.id }}" name="rating" value="3" {% if user_ratings.get(route.id) == 3 %}checked{% endif %}>
+                <label for="star3-{{ route.id }}">★</label>
+                <input type="radio" id="star2-{{ route.id }}" name="rating" value="2" {% if user_ratings.get(route.id) == 2 %}checked{% endif %}>
+                <label for="star2-{{ route.id }}">★</label>
+                <input type="radio" id="star1-{{ route.id }}" name="rating" value="1" {% if user_ratings.get(route.id) == 1 %}checked{% endif %}>
+                <label for="star1-{{ route.id }}">★</label>
+              </div>
               <button type="submit">Оценить</button>
             </form>
           {% endif %}

@@ -13,6 +13,24 @@
     #comments-container {
       margin-top: 15px;
     }
+    /* Стили для звёздного рейтинга */
+    .star-rating {
+      display: inline-block;
+      direction: rtl;
+      font-size: 1.2em;
+    }
+    .star-rating input[type="radio"] {
+      display: none;
+    }
+    .star-rating label {
+      color: #ccc;
+      cursor: pointer;
+    }
+    .star-rating input[type="radio"]:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+      color: #FFD700;
+    }
   </style>
 </head>
 <body>
@@ -24,41 +42,48 @@
     <p>{{ route.description }}</p>
     <p><small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small></p>
     
-    <!-- Кнопка отметки посещения -->
+    <!-- Отметка посещения -->
     {% if current_user.is_authenticated %}
       <form action="{{ url_for('mark_visit', route_id=route.id) }}" method="POST" id="visit-form">
         <button type="submit" class="btn">Я посетил маршрут</button>
       </form>
     {% endif %}
     
-    <!-- Блок с лайками и оценкой -->
+    <!-- Лайки, средний рейтинг и форма оценки -->
     <div>
-      <span>Лайков: {{ route.likes_count or 0 }}</span>
+      <span>Лайков: {{ route.likes_count }}</span> |
+      <span>Средний рейтинг: {{ route.average_rating }} ★</span>
       {% if current_user.is_authenticated %}
       <form action="{{ url_for('rate_route', route_id=route.id) }}" method="POST" style="display:inline;">
-        <label for="rating">Ваша оценка:</label>
-        <input type="number" name="rating" id="rating" min="1" max="5" required>
+        <div class="star-rating">
+          <input type="radio" id="star5-route-{{ route.id }}" name="rating" value="5" {% if user_rating == 5 %}checked{% endif %} required>
+          <label for="star5-route-{{ route.id }}">★</label>
+          <input type="radio" id="star4-route-{{ route.id }}" name="rating" value="4" {% if user_rating == 4 %}checked{% endif %}>
+          <label for="star4-route-{{ route.id }}">★</label>
+          <input type="radio" id="star3-route-{{ route.id }}" name="rating" value="3" {% if user_rating == 3 %}checked{% endif %}>
+          <label for="star3-route-{{ route.id }}">★</label>
+          <input type="radio" id="star2-route-{{ route.id }}" name="rating" value="2" {% if user_rating == 2 %}checked{% endif %}>
+          <label for="star2-route-{{ route.id }}">★</label>
+          <input type="radio" id="star1-route-{{ route.id }}" name="rating" value="1" {% if user_rating == 1 %}checked{% endif %}>
+          <label for="star1-route-{{ route.id }}">★</label>
+        </div>
         <button type="submit" class="btn">Оценить</button>
       </form>
       {% endif %}
     </div>
     
-    <!-- Блок комментариев -->
+    <!-- Комментарии -->
     <div id="comments-section">
       <button id="load-comments" class="btn">Показать комментарии</button>
       <div id="comments-container"></div>
     </div>
     
-    <!-- Форма добавления комментария -->
+    <!-- Форма добавления комментария (без поля оценки) -->
     {% if current_user.is_authenticated %}
     <h2>Добавить комментарий</h2>
     <form action="{{ url_for('add_comment', route_id=route.id) }}" method="POST">
       <div>
         <textarea name="text" placeholder="Ваш комментарий" required></textarea>
-      </div>
-      <div>
-        <label for="rating">Оценка (1-5):</label>
-        <input type="number" name="rating" id="rating" min="1" max="5">
       </div>
       <button type="submit">Отправить</button>
     </form>
@@ -74,7 +99,6 @@
         .then(response => response.text())
         .then(html => {
           document.getElementById('comments-container').innerHTML = html;
-          // Можно скрыть кнопку после загрузки
           document.getElementById('load-comments').style.display = 'none';
         });
     });
