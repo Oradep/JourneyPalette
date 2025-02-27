@@ -7,10 +7,16 @@ import json
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import csv
+import zipfile
+from lxml import etree
+import requests
+from bs4 import BeautifulSoup
+
 
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads', 'avatars')
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['SECRET_KEY'] = '322'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tourist_routes.db'
@@ -97,6 +103,16 @@ class Photo(db.Model):
     file_path = db.Column(db.String(200))
     caption = db.Column(db.String(200))
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
+    order_index = db.Column(db.Integer, default=0)  # новое поле для сортировки
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'file_path': self.file_path,
+            'caption': self.caption,
+            'order_index': self.order_index
+        }
+
 
 # Комментарии и оценки
 class Comment(db.Model):
@@ -267,29 +283,42 @@ def mark_visit(route_id):
         db.session.commit()
     return jsonify({'status': 'visited'})
 
-# Экспорт маршрута (заглушка)
+
+ # Экспорт файлов
+
 @app.route('/route/<int:route_id>/export/<format>')
 @login_required
 def export_route(route_id, format):
     route = Route.query.get_or_404(route_id)
+    
     if route.is_private and route.user_id != current_user.id:
         flash("Нет доступа к приватному маршруту")
         return redirect(url_for('index'))
-    if format.lower() == 'gpx':
+    
+    format = format.lower()
+    if format == 'gpx':
         data = f"<gpx><trk><name>{route.title}</name></trk></gpx>"
         mime = 'application/gpx+xml'
-    elif format.lower() == 'kml':
+    elif format == 'kml':
         data = f"<?xml version='1.0'?><kml><Document><name>{route.title}</name></Document></kml>"
         mime = 'application/vnd.google-earth.kml+xml'
-    elif format.lower() == 'kmz':
+    elif format == 'kmz':
         data = f"<?xml version='1.0'?><kml><Document><name>{route.title}</name></Document></kml>"
         mime = 'application/vnd.google-earth.kmz'
     else:
         flash("Неподдерживаемый формат экспорта")
         return redirect(url_for('index'))
-    return send_file(io.BytesIO(data.encode('utf-8')), mimetype=mime,
-                     as_attachment=True, download_name=f"{route.title}.{format}")
-
+    
+    buffer = io.BytesIO()
+    buffer.write(data.encode('utf-8'))
+    buffer.seek(0)
+    
+    return send_file(buffer, 
+                     mimetype=mime,
+                     as_attachment=True, 
+                     download_name=f"{route.title}.{format}")
+    
+    
 # Обработка оценки маршрута
 @app.route('/route/<int:route_id>/rate', methods=['POST'])
 @login_required
@@ -371,34 +400,32 @@ def logout():
 @login_required
 def upload_avatar():
     if 'avatar' not in request.files:
-        flash('Файл не выбран', 'error')
-        return redirect(url_for('user_profile', user_id=current_user.id))
+        return jsonify(success=False, error="Файл не выбран")
     file = request.files['avatar']
     if file.filename == '':
-        flash('Файл не выбран', 'error')
-        return redirect(url_for('user_profile', user_id=current_user.id))
+        return jsonify(success=False, error="Файл не выбран")
     if file:
         # Защищаем оригинальное имя файла
         filename = secure_filename(file.filename)
         ext = os.path.splitext(filename)[1]
-        # Формируем уникальное имя: имя пользователя + текущая дата + случайное значение
+        # Формируем уникальное имя: имя пользователя + текущая дата (UTC) + случайное значение
         unique_filename = f"{current_user.username}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'avatars')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, unique_filename)
         try:
             file.save(file_path)
         except Exception as e:
-            flash('Ошибка сохранения файла: ' + str(e), 'error')
-            return redirect(url_for('user_profile', user_id=current_user.id))
+            return jsonify(success=False, error="Ошибка сохранения файла: " + str(e))
         
-        # Если у пользователя уже есть аватар, и он не является дефолтным, удаляем старый файл
+        # Если у пользователя уже есть аватар (и он не дефолтный), удаляем старый файл
         if current_user.avatar_url and 'default-avatar.png' not in current_user.avatar_url:
-            # Предполагаем, что avatar_url имеет вид '/static/uploads/avatars/filename'
             old_avatar_path = os.path.join(app.root_path, current_user.avatar_url.lstrip('/'))
             if os.path.exists(old_avatar_path):
                 try:
                     os.remove(old_avatar_path)
                 except Exception as e:
-                    # Если удалить не удалось, логируем ошибку, но продолжаем
+                    # Логируем ошибку, но не прерываем процесс
                     print("Ошибка удаления старого аватара:", e)
         
         # Обновляем avatar_url пользователя – формируем URL относительно папки static
@@ -407,44 +434,166 @@ def upload_avatar():
             db.session.commit()
         except Exception as e:
             db.session.rollback()
-            flash('Ошибка обновления базы данных: ' + str(e), 'error')
-            return redirect(url_for('user_profile', user_id=current_user.id))
-        flash('Аватар успешно обновлён', 'success')
+            return jsonify(success=False, error="Ошибка обновления базы данных: " + str(e))
+        return jsonify(success=True, new_avatar_url=current_user.avatar_url)
     else:
-        flash('Некорректный файл', 'error')
-    return redirect(url_for('user_profile', user_id=current_user.id))
+        return jsonify(success=False, error="Некорректный файл")
 
 
-@app.route('/upload_image', methods=['POST'])
+
+@app.route('/upload_route_images', methods=['POST'])
 @login_required
-def upload_image():
-    if 'image' not in request.files:
-        flash('Файл не выбран', 'error')
-        return redirect(url_for('user_profile', user_id=current_user.id))
-    file = request.files['image']
-    if file.filename == '':
-        flash('Файл не выбран', 'error')
-        return redirect(url_for('user_profile', user_id=current_user.id))
-    if file:
-        # Защищаем оригинальное имя файла
+def upload_route_images():
+    if 'images' not in request.files:
+        return jsonify(success=False, error="Файлы не выбраны")
+    files = request.files.getlist('images')
+    if not files or len(files) == 0:
+        return jsonify(success=False, error="Файлы не выбраны")
+    max_files = 10
+    route_id = request.form.get('route_id')
+    route = Route.query.get(route_id)
+    if not route:
+        return jsonify(success=False, error="Маршрут не найден")
+    existing_count = Photo.query.filter_by(route_id=route_id).count()
+    if existing_count + len(files) > max_files:
+        return jsonify(success=False, error=f"Можно загрузить не более {max_files} изображений. Сейчас загружено: {existing_count}")
+    upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'route_images')
+    os.makedirs(upload_folder, exist_ok=True)
+    uploaded_files = []
+    for file in files:
+        if file.filename == '':
+            continue
         filename = secure_filename(file.filename)
         ext = os.path.splitext(filename)[1]
-        # Формируем уникальное имя файла, включающее имя пользователя, дату и случайное значение
-        unique_filename = f"{current_user.username}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
-        upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'images')
+        unique_filename = f"route_{route_id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(upload_folder, unique_filename)
+        try:
+            file.save(file_path)
+            file_url = url_for('static', filename='uploads/route_images/' + unique_filename)
+            # Определяем order_index как максимум + 1
+            max_order = db.session.query(db.func.max(Photo.order_index)).filter_by(route_id=route_id).scalar() or 0
+            new_photo = Photo(file_path=file_url, route_id=route_id, order_index=max_order + 1)
+            db.session.add(new_photo)
+            db.session.commit()
+            uploaded_files.append(new_photo.to_dict())
+        except Exception as e:
+            db.session.rollback()
+            return jsonify(success=False, error=str(e))
+    return jsonify(success=True, files=uploaded_files)
+
+
+
+
+
+
+@app.route('/delete_photo/<int:photo_id>', methods=['POST'])
+@login_required
+def delete_photo(photo_id):
+    photo = Photo.query.get(photo_id)
+    if not photo:
+        return jsonify(success=False, error="Фото не найдено")
+    # Удаляем файл с диска
+    file_path = os.path.join(app.root_path, photo.file_path.lstrip('/'))
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        return jsonify(success=False, error="Ошибка удаления файла: " + str(e))
+    try:
+        db.session.delete(photo)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(success=False, error="Ошибка удаления записи: " + str(e))
+    return jsonify(success=True)
+
+
+
+
+@app.route('/update_photo_order', methods=['POST'])
+@login_required
+def update_photo_order():
+    data = request.get_json()
+    order = data.get('order', [])
+    try:
+        for idx, photo_id in enumerate(order):
+            photo = Photo.query.get(photo_id)
+            if photo:
+                photo.order_index = idx + 1
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(success=False, error=str(e))
+    return jsonify(success=True)
+
+
+
+
+
+@app.route('/upload_landmark_image', methods=['POST'])
+@login_required
+def upload_landmark_image():
+    if 'image' not in request.files:
+        return jsonify(success=False, error="Файл не выбран")
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify(success=False, error="Файл не выбран")
+    if file:
+        filename = secure_filename(file.filename)
+        ext = os.path.splitext(filename)[1]
+        # Формируем уникальное имя. Здесь можно не привязывать к landmark, так как их может быть добавлено позже.
+        unique_filename = f"landmark_{current_user.username}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
+        upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'landmark_images')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, unique_filename)
         try:
             file.save(file_path)
         except Exception as e:
-            flash('Ошибка сохранения файла: ' + str(e), 'error')
-            return redirect(url_for('user_profile', user_id=current_user.id))
-        # Здесь можно сохранить путь к изображению в базе данных для дальнейшего использования,
-        # например, привязать его к маршруту или достопримечательности.
-        flash('Изображение успешно загружено', 'success')
+            return jsonify(success=False, error="Ошибка сохранения файла: " + str(e))
+        file_url = url_for('static', filename='uploads/landmark_images/' + unique_filename)
+        return jsonify(success=True, file_url=file_url)
     else:
-        flash('Некорректный файл', 'error')
-    return redirect(url_for('user_profile', user_id=current_user.id))
+        return jsonify(success=False, error="Некорректный файл")
+
+
+
+@app.route('/fetch_yandex_data', methods=['POST'])
+@login_required
+def fetch_yandex_data():
+    data = request.get_json()
+    yandex_url = data.get('yandex_url')
+    if not yandex_url:
+        return jsonify(success=False, error="Ссылка не указана")
+    
+    try:
+        # Загружаем страницу по ссылке
+        response = requests.get(yandex_url)
+        if response.status_code != 200:
+            return jsonify(success=False, error="Ошибка получения страницы, статус " + str(response.status_code))
+        html = response.text
+        
+        # Парсим HTML с помощью BeautifulSoup
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Извлекаем название (элемент с классом card-title-view__title-link)
+        title_elem = soup.find(class_="card-title-view__title-link")
+        extracted_name = title_elem.get_text(strip=True) if title_elem else "Нет названия"
+        
+        # Извлекаем описание (элемент с классом business-features-view__valued-value)
+        desc_elem = soup.find(class_="business-features-view__valued-value")
+        extracted_description = desc_elem.get_text(strip=True) if desc_elem else "Нет описания"
+        
+        # Извлекаем URL изображения (элемент с классом img-with-alt, берем атрибут src)
+        img_elem = soup.find(class_="img-with-alt")
+        extracted_photo_url = img_elem["src"] if img_elem and img_elem.has_attr("src") else ""
+        
+        return jsonify(success=True,
+                       name=extracted_name,
+                       description=extracted_description,
+                       photo_url=extracted_photo_url)
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
+
 
 
 

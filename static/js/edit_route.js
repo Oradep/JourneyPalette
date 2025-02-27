@@ -177,40 +177,87 @@ function updateMultiRoute() {
     }
 }
 
-// Открытие окна редактирования для выбранного маркера
+// Функция открытия окна редактирования для выбранного маркера
 function openLandmarkEditor(marker) {
-    currentLandmarkMarker = marker;
-    if (!marker.originalLandmarkData) {
-      marker.originalLandmarkData = Object.assign({}, marker.landmarkData);
-    }
-    document.getElementById('landmark-name').value = marker.landmarkData ? marker.landmarkData.name : '';
-    document.getElementById('landmark-description').value = marker.landmarkData ? marker.landmarkData.description : '';
-    document.getElementById('landmark-photo').value = marker.landmarkData ? marker.landmarkData.photo_url : '';
-    document.getElementById('landmark-editor').style.display = 'block';
-    fetchNearbyObject(marker);
+  currentLandmarkMarker = marker;
+  // Сохраняем исходные данные, если их ещё нет
+  if (!marker.originalLandmarkData) {
+    marker.originalLandmarkData = Object.assign({}, marker.landmarkData);
+  }
+  // Заполняем поля редактора
+  document.getElementById('landmark-name').value = marker.landmarkData ? marker.landmarkData.name : '';
+  document.getElementById('landmark-description').value = marker.landmarkData ? marker.landmarkData.description : '';
+  // Очищаем input типа file (его нельзя программно задать, но можно сбросить выбор)
+  $('#landmark-photo').val('');
+  // Показываем предпросмотр, если уже есть фото
+  if (marker.landmarkData && marker.landmarkData.photo_url) {
+    $('#landmark-photo-preview').html('<img src="' + marker.landmarkData.photo_url + '" style="max-height:100px;">');
+  } else {
+    $('#landmark-photo-preview').empty();
+  }
+  document.getElementById('landmark-editor').style.display = 'block';
 }
 
-// Сохранение данных редактирования (перевод маркера в режим достопримечательности)
+// При выборе файла для фото достопримечательности автоматически загружаем его на сервер
+$(document).ready(function(){
+$('#landmark-photo').on('change', function(){
+  var fileInput = $(this)[0];
+  if(fileInput.files.length > 0){
+    var formData = new FormData();
+    formData.append('image', fileInput.files[0]);
+    // Если нужно, можно добавить идентификатор достопримечательности или route_id
+    // formData.append('route_id', $('#route-id').val());
+    
+    // Отправляем файл на сервер через AJAX на отдельный маршрут upload_landmark_image
+    fetch(uploadLandmarkUrl, {
+      method: "POST",
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if(data.success){
+        // Обновляем предпросмотр и сохраняем URL в currentLandmarkMarker
+        $('#landmark-photo-preview').html('<img src="' + data.file_url + '" style="max-height:100px;">');
+        if(!currentLandmarkMarker.landmarkData){
+          currentLandmarkMarker.landmarkData = {};
+        }
+        currentLandmarkMarker.landmarkData.photo_url = data.file_url;
+      } else {
+        alert("Ошибка загрузки изображения для достопримечательности: " + data.error);
+      }
+    })
+    .catch(err => {
+      console.error("Ошибка запроса:", err);
+      alert("Ошибка загрузки изображения для достопримечательности.");
+    });
+    
+  }
+});
+});
+
+// Функция сохранения данных редактирования (при этом используется уже загруженный URL для фото)
 function saveLandmarkData(e) {
-    e.preventDefault();
-    if (!currentLandmarkMarker) return;
-    currentLandmarkMarker.landmarkData = {
-      name: document.getElementById('landmark-name').value,
-      description: document.getElementById('landmark-description').value,
-      photo_url: document.getElementById('landmark-photo').value
-    };
-    currentLandmarkMarker.properties.set('hintContent', currentLandmarkMarker.landmarkData.name || 'Достопримечательность');
-    if (!currentLandmarkMarker.isLandmark) {
-      currentLandmarkMarker.isLandmark = true;
-      currentLandmarkMarker.options.set('preset', 'islands#redIcon');
-      markers = markers.filter(m => m !== currentLandmarkMarker);
-      landmarkMarkers.push(currentLandmarkMarker);
-      console.log(`[${new Date().toISOString()}] Маркер переведен в достопримечательность.`, currentLandmarkMarker);
-    }
-    updateHiddenInputs();
-    delete currentLandmarkMarker.originalLandmarkData;
-    document.getElementById('landmark-editor').style.display = 'none';
-    currentLandmarkMarker = null;
+  e.preventDefault();
+  if (!currentLandmarkMarker) return;
+  // Обновляем данные достопримечательности с полями, введёнными пользователем,
+  // а поле photo_url уже обновлено через AJAX при выборе файла
+  currentLandmarkMarker.landmarkData = {
+    name: document.getElementById('landmark-name').value,
+    description: document.getElementById('landmark-description').value,
+    photo_url: currentLandmarkMarker.landmarkData ? currentLandmarkMarker.landmarkData.photo_url : ''
+  };
+  currentLandmarkMarker.properties.set('hintContent', currentLandmarkMarker.landmarkData.name || 'Достопримечательность');
+  if (!currentLandmarkMarker.isLandmark) {
+    currentLandmarkMarker.isLandmark = true;
+    currentLandmarkMarker.options.set('preset', 'islands#redIcon');
+    markers = markers.filter(m => m !== currentLandmarkMarker);
+    landmarkMarkers.push(currentLandmarkMarker);
+    console.log(`[${new Date().toISOString()}] Маркер переведен в достопримечательность.`, currentLandmarkMarker);
+  }
+  updateHiddenInputs();
+  delete currentLandmarkMarker.originalLandmarkData;
+  document.getElementById('landmark-editor').style.display = 'none';
+  currentLandmarkMarker = null;
 }
 
 // Отмена редактирования
@@ -239,28 +286,78 @@ function deleteLandmarkData(e) {
 }
 
 // Автоматический парсинг ближайшего объекта через геокодер Яндекс.Карт
-function fetchNearbyObject(marker) {
-    const coords = marker.geometry.getCoordinates();
-    ymaps.geocode(coords, { results: 1 }).then(function(res) {
-      const firstObject = res.geoObjects.get(0);
-      if (firstObject) {
-        const properties = firstObject.properties.getAll();
-        const name = properties.name || '';
-        const description = properties.description || '';
-        const photo_url = ''; // При наличии API можно задать URL
-        if (!marker.landmarkData.name) marker.landmarkData.name = name;
-        if (!marker.landmarkData.description) marker.landmarkData.description = description;
-        if (!marker.landmarkData.photo_url) marker.landmarkData.photo_url = photo_url;
-        if (currentLandmarkMarker === marker) {
-          document.getElementById('landmark-name').value = marker.landmarkData.name;
-          document.getElementById('landmark-description').value = marker.landmarkData.description;
-          document.getElementById('landmark-photo').value = marker.landmarkData.photo_url;
-        }
-        marker.properties.set('hintContent', marker.landmarkData.name || 'Достопримечательность');
-        updateHiddenInputs();
+// При клике по кнопке "Получить данные" для достопримечательности
+$('#fetch-yandex-data').on('click', function(){
+  const yandexUrl = $('#landmark-yandex-url').val().trim();
+  if (!yandexUrl) {
+      alert("Введите ссылку с Яндекс.Карт");
+      return;
+  }
+  // Отправляем AJAX‑запрос на сервер для получения данных по ссылке
+  fetch(fetchYandexDataUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ yandex_url: yandexUrl })
+  })
+  .then(response => response.json())
+  .then(data => {
+      if(data.success) {
+          // Заполняем поля редактора
+          $('#landmark-name').val(data.name);
+          $('#landmark-description').val(data.description);
+          // Если сервер вернул URL фото, обновляем предпросмотр и сохраняем его в текущем маркере
+          if(data.photo_url) {
+              $('#landmark-photo-preview').html('<img src="' + data.photo_url + '" style="max-height:100px;">');
+              if(!currentLandmarkMarker.landmarkData) {
+                  currentLandmarkMarker.landmarkData = {};
+              }
+              currentLandmarkMarker.landmarkData.photo_url = data.photo_url;
+          } else {
+              $('#landmark-photo-preview').empty();
+          }
+      } else {
+          alert("Ошибка: " + data.error);
       }
-    });
-}
+  })
+  .catch(err => {
+      console.error("Ошибка запроса:", err);
+      alert("Ошибка получения данных с Яндекс.Карт.");
+  });
+});
+
+// Если пользователь выбирает новый файл для фото достопримечательности, загружаем его автоматически
+$('#landmark-photo').on('change', function(){
+  var fileInput = $(this)[0];
+  if(fileInput.files.length > 0) {
+      var formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      // Опционально, можно добавить идентификатор достопримечательности или route_id
+      fetch("{{ url_for('upload_landmark_image') }}", {
+          method: "POST",
+          body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+          if(data.success){
+              // Обновляем предпросмотр и сохраняем URL в текущем маркере
+              $('#landmark-photo-preview').html('<img src="' + data.file_url + '" style="max-height:100px;">');
+              if(!currentLandmarkMarker.landmarkData){
+                  currentLandmarkMarker.landmarkData = {};
+              }
+              currentLandmarkMarker.landmarkData.photo_url = data.file_url;
+          } else {
+              alert("Ошибка загрузки изображения для достопримечательности: " + data.error);
+          }
+      })
+      .catch(err => {
+          console.error("Ошибка запроса:", err);
+          alert("Ошибка загрузки изображения для достопримечательности.");
+      });
+  }
+});
+
 
 function init() {
     let center;

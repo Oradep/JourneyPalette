@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>Редактировать маршрут: {{ route.title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <!-- Подключаем jQuery UI CSS (например, через CDN) -->
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
   <style>
     #map {
       height: 500px;
@@ -25,6 +27,49 @@
     #landmark-editor textarea {
       width: 100%;
       margin-bottom: 10px;
+    }
+    /* Стили для предпросмотра новых изображений */
+    #images-preview {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+    #images-preview img {
+      height: 100px;
+      border: 1px solid #ccc;
+      padding: 3px;
+    }
+    /* Контейнер для существующих фото с сортировкой */
+    #existing-photos {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      margin-top: 10px;
+      border: 1px solid #ddd;
+      padding: 5px;
+    }
+    #existing-photos .photo-item {
+      position: relative;
+      cursor: move;
+    }
+    #existing-photos img {
+      height: 100px;
+      border: 1px solid #ccc;
+      padding: 3px;
+    }
+    /* Кнопка удаления фото (крестик) */
+    .delete-photo-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: rgba(255, 0, 0, 0.8);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -59,6 +104,29 @@
     <input type="hidden" name="landmarks" id="landmarks" value='{{ route_landmarks | tojson | safe if route_landmarks else "[]" }}'>
     <!-- Скрытое поле для route.id -->
     <input type="hidden" name="route_id" id="route-id" value="{{ route.id }}">
+
+    <!-- Блок для загрузки новых фотографий маршрута -->
+    <div>
+      <label for="route_images">Прикрепить изображения (до 10 шт.):</label>
+      <input type="file" id="route_images" name="route_images" accept="image/*" multiple>
+      <!-- Контейнер для предпросмотра выбранных новых изображений -->
+      <div id="images-preview"></div>
+    </div>
+
+    <!-- Блок для отображения уже сохранённых фотографий маршрута -->
+    <div>
+      <h3>Фотографии маршрута</h3>
+      <div id="existing-photos">
+        {% for photo in route.photos|sort(attribute="order_index") %}
+          <div class="photo-item" data-photo-id="{{ photo.id }}">
+            <img src="{{ photo.file_path }}" alt="Фото маршрута">
+            <button type="button" class="delete-photo-btn">×</button>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <button type="submit">Сохранить изменения маршрута</button>
   </form>
   
   <!-- Кнопка выхода (ссылка на главную) -->
@@ -67,23 +135,144 @@
   <!-- Панель редактирования достопримечательности -->
   <div id="landmark-editor" style="display:none;">
     <h3>Редактировать достопримечательность</h3>
+    <!-- Новое поле для ввода ссылки с Яндекс.Карт -->
+    <label for="landmark-yandex-url">Ссылка с Яндекс.Карт:</label>
+    <input type="text" id="landmark-yandex-url" placeholder="Введите ссылку с Яндекс.Карт">
+    <button type="button" id="fetch-yandex-data">Получить данные</button>
+    <br>
     <label for="landmark-name">Название:</label>
     <input type="text" id="landmark-name">
     <label for="landmark-description">Описание:</label>
     <textarea id="landmark-description"></textarea>
-    <label for="landmark-photo">Фото URL:</label>
-    <input type="text" id="landmark-photo">
+    <label for="landmark-photo">Фото:</label>
+    <!-- Вместо ввода URL используем загрузку файла для фото достопримечательности -->
+    <input type="file" id="landmark-photo" accept="image/*">
+    <!-- Контейнер для предпросмотра загруженного изображения -->
+    <div id="landmark-photo-preview" style="margin-top: 10px;"></div>
     <div style="text-align: right;">
       <button id="save-landmark">Сохранить</button>
       <button id="cancel-landmark">Отмена</button>
       <button id="delete-landmark">Удалить</button>
     </div>
   </div>
+  
+  
 
-  <!-- Подключение Яндекс.Карт и jQuery -->
-  <script src="https://api-maps.yandex.ru/2.1/?apikey=87ec7ba4-2222-482d-b49f-11bdee31019b&lang=ru_RU"></script>
+  <!-- Подключаем jQuery, jQuery UI и Яндекс.Карты -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <!-- Подключение внешнего скрипта -->
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=87ec7ba4-2222-482d-b49f-11bdee31019b&lang=ru_RU"></script>
+  <script>
+    var uploadLandmarkUrl = "{{ url_for('upload_landmark_image') }}";
+    var fetchYandexDataUrl = "{{ url_for('fetch_yandex_data') }}";
+  </script>
   <script src="{{ url_for('static', filename='js/edit_route.js') }}"></script>
+  
+  <!-- Скрипт для предпросмотра, загрузки, сортировки и удаления изображений -->
+  <script>
+    $(document).ready(function(){
+      // Функция предпросмотра новых изображений и автоматическая загрузка
+      $('#route_images').on('change', function() {
+        const maxImages = 10;
+        const previewContainer = $('#images-preview');
+        previewContainer.empty();
+        const files = this.files;
+        if (files.length > maxImages) {
+          alert("Можно загрузить не более " + maxImages + " изображений.");
+          $(this).val('');
+          return;
+        }
+        // Если файлы выбраны, сразу отправляем их на сервер
+        if (files.length > 0) {
+          const formData = new FormData();
+          for (let i = 0; i < files.length; i++) {
+            formData.append('images', files[i]);
+          }
+          const routeId = $('#route-id').val();
+          formData.append('route_id', routeId);
+          
+          // Отображаем предпросмотр
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (!file.type.startsWith('image/')) continue;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const img = $('<img>').attr('src', e.target.result);
+              previewContainer.append(img);
+            }
+            reader.readAsDataURL(file);
+          }
+          
+          // Автоматически отправляем файлы на сервер через AJAX
+          fetch("{{ url_for('upload_route_images') }}", {
+            method: "POST",
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert("Изображения успешно загружены");
+              $('#route_images').val('');
+              // Обновляем блок с существующими фото, не перезагружая страницу:
+              // Здесь можно сделать AJAX-запрос к маршруту /get_route_photos/<route_id>
+              // Для простоты – перезагружаем страницу:
+              location.reload();
+            } else {
+              alert("Ошибка загрузки: " + data.error);
+            }
+          })
+          .catch(err => {
+            console.error("Ошибка запроса:", err);
+            alert("Ошибка загрузки изображений.");
+          });
+        }
+      });
+      
+      // Инициализируем сортировку существующих фото с сохранением порядка автоматически
+      $('#existing-photos').sortable({
+        update: function(event, ui) {
+          const order = [];
+          $('#existing-photos .photo-item').each(function() {
+            order.push($(this).data('photo-id'));
+          });
+          $.ajax({
+            url: "{{ url_for('update_photo_order') }}",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ order: order }),
+            success: function(data) {
+              if (!data.success) {
+                alert("Ошибка обновления порядка: " + data.error);
+              }
+            },
+            error: function() {
+              alert("Ошибка запроса обновления порядка");
+            }
+          });
+        }
+      });
+      
+      // Удаление фото по клику на крестик
+      $('#existing-photos').on('click', '.delete-photo-btn', function() {
+        const photoItem = $(this).closest('.photo-item');
+        const photoId = photoItem.data('photo-id');
+        if (!confirm("Удалить фото?")) return;
+        $.ajax({
+          url: "{{ url_for('delete_photo', photo_id=0) }}".replace('0', photoId),
+          method: "POST",
+          success: function(data) {
+            if (data.success) {
+              photoItem.remove();
+            } else {
+              alert("Ошибка удаления: " + data.error);
+            }
+          },
+          error: function(err) {
+            alert("Ошибка запроса удаления");
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>
