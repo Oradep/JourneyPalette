@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>История: {{ route.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <h1>История изменений маршрута: "{{ route.title }}"</h1>
+  {% if histories %}
+    <ul>
+      {% for history in histories %}
+        <li>
+          <strong>{{ history.changed_at.strftime("%d-%m-%Y %H:%M") }}</strong> – {{ history.change_desc }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>История изменений отсутствует.</p>
+  {% endif %}
+  <a href="{{ url_for('index') }}">Назад на главную</a>
+</body>
+</html>

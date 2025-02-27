@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ route.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <h1>{{ route.title }}</h1>
+  <p>{{ route.description }}</p>
+  <p><small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small></p>
+  
+  <h2>Комментарии</h2>
+  {% if route.comments %}
+    <ul>
+      {% for comment in route.comments %}
+        <li>
+          <p>{{ comment.text }}</p>
+          <small>Оценка: {{ comment.rating }} | {{ comment.created_at.strftime("%d-%m-%Y %H:%M") }}</small>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Нет комментариев.</p>
+  {% endif %}
+  
+  <h2>Добавить комментарий</h2>
+  <form action="{{ url_for('add_comment', route_id=route.id) }}" method="POST">
+    <div>
+      <textarea name="text" placeholder="Ваш комментарий" required></textarea>
+    </div>
+    <div>
+      <label for="rating">Оценка (1-5):</label>
+      <input type="number" name="rating" id="rating" min="1" max="5">
+    </div>
+    <button type="submit">Отправить</button>
+  </form>
+  
+  <a href="{{ url_for('index') }}">Назад на главную</a>
+</body>
+</html>

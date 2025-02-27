@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Вход / Регистрация</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    .tabs { display: flex; margin-bottom: 10px; }
+    .tab { padding: 10px 20px; cursor: pointer; background: #eee; border: 1px solid #ccc; }
+    .tab.active { background: #fff; border-bottom: none; }
+    .form-container { border: 1px solid #ccc; padding: 20px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="tabs">
+      <div id="tab-login" class="tab active">Вход</div>
+      <div id="tab-register" class="tab">Регистрация</div>
+    </div>
+<!-- 
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %} -->
+
+    <!-- Форма входа -->
+    <div id="form-login" class="form-container">
+      <h2>Вход</h2>
+      <form action="{{ url_for('login') }}" method="POST">
+        <div>
+          <label for="login_username">Логин:</label>
+          <input type="text" name="username" id="login_username" required>
+        </div>
+        <div>
+          <label for="login_password">Пароль:</label>
+          <input type="password" name="password" id="login_password" required>
+        </div>
+        <button type="submit">Войти</button>
+      </form>
+    </div>
+
+    <!-- Форма регистрации -->
+    <div id="form-register" class="form-container hidden">
+      <h2>Регистрация</h2>
+      <form action="{{ url_for('register') }}" method="POST">
+        <div>
+          <label for="register_username">Логин:</label>
+          <input type="text" name="username" id="register_username" required>
+        </div>
+        <div>
+          <label for="register_password">Пароль:</label>
+          <input type="password" name="password" id="register_password" required>
+        </div>
+        <div>
+          <label for="confirm_password">Подтверждение пароля:</label>
+          <input type="password" name="confirm_password" id="confirm_password" required>
+        </div>
+        <button type="submit">Зарегистрироваться</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const formLogin = document.getElementById('form-login');
+    const formRegister = document.getElementById('form-register');
+
+    tabLogin.addEventListener('click', () => {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      formLogin.classList.remove('hidden');
+      formRegister.classList.add('hidden');
+    });
+
+    tabRegister.addEventListener('click', () => {
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      formRegister.classList.remove('hidden');
+      formLogin.classList.add('hidden');
+    });
+  </script>
+</body>
+</html>

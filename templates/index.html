@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Туристические маршруты</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Туристические маршруты</h1>
+    {% if current_user.is_authenticated %}
+      <div>
+        Привет, {{ current_user.username }}!
+        <a href="{{ url_for('logout') }}">Выйти</a>
+        <a href="{{ url_for('create_route') }}">Создать маршрут</a>
+      </div>
+    {% else %}
+      <a href="{{ url_for('login') }}">Войти</a>
+    {% endif %}
+  </header>
+
+  <main>
+    {% if routes %}
+      <ul>
+        {% for route in routes %}
+          <li>
+            <h2>{{ route.title }}</h2>
+            <p>{{ route.description }}</p>
+            <small>Создан: {{ route.created_at.strftime("%d-%m-%Y %H:%M") }}</small>
+            <div>
+              {% if current_user.is_authenticated and route.user_id == current_user.id %}
+                <a href="{{ url_for('route_history', route_id=route.id) }}">История изменений</a>
+                <a href="{{ url_for('edit_route', route_id=route.id) }}">Редактор</a>
+              {% endif %}
+              <a href="{{ url_for('export_route', route_id=route.id, format='gpx') }}">Экспорт GPX</a>
+              <a href="{{ url_for('export_route', route_id=route.id, format='kml') }}">Экспорт KML</a>
+              <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">Экспорт KMZ</a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Маршрутов пока нет.</p>
+    {% endif %}
+  </main>
+
+  <footer>
+    <p>&copy; {{ current_year if current_year is defined else 2025 }} Все права защищены</p>
+  </footer>
+</body>
+</html>

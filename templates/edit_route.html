@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Редактировать маршрут: {{ route.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    #map {
+      height: 500px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    /* Стили панели редактирования достопримечательности */
+    #landmark-editor {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      z-index: 1000;
+      width: 300px;
+    }
+    #landmark-editor input, #landmark-editor textarea {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Редактировать маршрут</h1>
+  <form action="{{ url_for('edit_route', route_id=route.id) }}" method="POST" enctype="multipart/form-data">
+    <div>
+      <label for="title">Название маршрута:</label>
+      <input type="text" name="title" id="title" value="{{ route.title }}" required>
+    </div>
+    <div>
+      <label for="description">Описание маршрута:</label>
+      <textarea name="description" id="description" required>{{ route.description }}</textarea>
+    </div>
+    <div>
+      <label for="is_private">Приватный маршрут:</label>
+      <input type="checkbox" name="is_private" id="is_private" {% if route.is_private %}checked{% endif %}>
+    </div>
+    
+    <div>
+      <p>
+        ЛКМ по карте: добавить обычную точку (с синим маркером) или удалить её.<br>
+        ПКМ по карте: создать новую точку (она сразу сохраняется) и открыть окно редактирования.<br>
+        ПКМ по маркеру: открыть окно редактирования выбранной точки.
+      </p>
+      <div id="map"></div>
+    </div>
+
+    <!-- Скрытые поля для сохранения данных -->
+    <input type="hidden" name="points" id="points" value='{{ route.points | tojson | safe if route.points else "[]" }}'>
+    <input type="hidden" name="allMarkers" id="allMarkers" value='{{ route.allMarkers | tojson | safe if route.allMarkers else "[]" }}'>
+    <input type="hidden" name="landmarks" id="landmarks" value='{{ route_landmarks | tojson | safe if route_landmarks else "[]" }}'>
+</form>
+  <!-- Кнопка выхода (ссылка на главную) -->
+  <a href="{{ url_for('index') }}">Выход</a>
+
+  <!-- Панель редактирования достопримечательности -->
+  <div id="landmark-editor" style="display:none;">
+    <h3>Редактировать достопримечательность</h3>
+    <label for="landmark-name">Название:</label>
+    <input type="text" id="landmark-name">
+    <label for="landmark-description">Описание:</label>
+    <textarea id="landmark-description"></textarea>
+    <label for="landmark-photo">Фото URL:</label>
+    <input type="text" id="landmark-photo">
+    <div style="text-align: right;">
+      <button id="save-landmark">Сохранить</button>
+      <button id="cancel-landmark">Отмена</button>
+      <button id="delete-landmark">Удалить</button>
+    </div>
+  </div>
+
+  <!-- Подключение Яндекс.Карт -->
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=87ec7ba4-2222-482d-b49f-11bdee31019b&lang=ru_RU"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="{{ url_for('static', filename='js/edit_route.js') }}">
+  
+  </script>
+</body>
+</html>
