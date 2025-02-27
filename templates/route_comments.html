@@ -2,17 +2,22 @@
 {% if route.comments %}
   <ul>
     {% for comment in route.comments %}
-      <li>
-        <p>{{ comment.text }}</p>
-        <small>
-          Оценка: 
-          {% if ratings[comment.id] is not none %}
-            {{ ratings[comment.id] }} ★
-          {% else %}
-            Нет оценки
-          {% endif %}
-           | {{ comment.created_at.strftime("%d-%m-%Y %H:%M") }}
-        </small>
+      <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <img src="{{ comment.user.avatar_url or url_for('static', filename='default-avatar.png') }}" 
+             alt="Аватар пользователя" 
+             style="width: 40px; height: 40px; border-radius: 50%;">
+        <div>
+          <p><strong>{{ comment.user.username }}</strong>: {{ comment.text }}</p>
+          <small>
+            Оценка: 
+            {% if ratings[comment.id] is not none %}
+              {{ ratings[comment.id] }} ★
+            {% else %}
+              Нет оценки
+            {% endif %}
+             | {{ comment.created_at.strftime("%d-%m-%Y %H:%M") }}
+          </small>
+        </div>
       </li>
     {% endfor %}
   </ul>

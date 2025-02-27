@@ -101,6 +101,7 @@ class Comment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
+    user = db.relationship('User', backref='comments')
 
 # История изменений маршрута
 class ChangeHistory(db.Model):
