@@ -419,19 +419,31 @@ def upload_avatar():
 @login_required
 def upload_image():
     if 'image' not in request.files:
-        flash('Файл не выбран')
+        flash('Файл не выбран', 'error')
         return redirect(url_for('user_profile', user_id=current_user.id))
     file = request.files['image']
     if file.filename == '':
-        flash('Файл не выбран')
+        flash('Файл не выбран', 'error')
         return redirect(url_for('user_profile', user_id=current_user.id))
-    filename = secure_filename(file.filename)
-    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], 'images')
-    os.makedirs(upload_path, exist_ok=True)
-    file_path = os.path.join(upload_path, filename)
-    file.save(file_path)
-    # Здесь можно сохранить путь к изображению для дальнейшего использования (например, для маршрутов или достопримечательностей)
-    flash('Изображение успешно загружено')
+    if file:
+        # Защищаем оригинальное имя файла
+        filename = secure_filename(file.filename)
+        ext = os.path.splitext(filename)[1]
+        # Формируем уникальное имя файла, включающее имя пользователя, дату и случайное значение
+        unique_filename = f"{current_user.username}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}{ext}"
+        upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'images')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, unique_filename)
+        try:
+            file.save(file_path)
+        except Exception as e:
+            flash('Ошибка сохранения файла: ' + str(e), 'error')
+            return redirect(url_for('user_profile', user_id=current_user.id))
+        # Здесь можно сохранить путь к изображению в базе данных для дальнейшего использования,
+        # например, привязать его к маршруту или достопримечательности.
+        flash('Изображение успешно загружено', 'success')
+    else:
+        flash('Некорректный файл', 'error')
     return redirect(url_for('user_profile', user_id=current_user.id))
 
 
