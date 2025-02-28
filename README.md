@@ -33,11 +33,13 @@ cd <название_папки_проекта>
 ```
 
 ### 3️⃣ Создание виртуального окружения
-```Windows
+Windows
+```bash
 python -m venv venv
 venv\Scripts\activate
 ```
-```Linux/Mac
+Linux/Mac
+```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
@@ -49,8 +51,20 @@ pip install -r requirements.txt
 ```
 
 ### 5️⃣ Настройка переменных окружения
-```Windows
+Windows
+```bash
 set FLASK_APP=app.py
 set FLASK_ENV=development
 ```
+Linux/Mac
+```bash
+export FLASK_APP=app.py
+export FLASK_ENV=development
 ```
+
+### 7️⃣ Запуск сервера
+```bash
+flask run
+```
+
+Сайт будет доступен по адресу: http://127.0.0.1:5050/
