@@ -34,25 +34,38 @@
     </header>
   
   <section>
+    <br>
     <div class="route-title">
       <h1>{{ route.title }}</h1>
     </div>
-    <div class="route_creator"></div>
+
     <!-- Галерея фотографий маршрута -->
-    {% if route.photos and route.photos|length > 0 %}
-      {% set sorted_photos = route.photos|sort(attribute='order_index') %}
-      <div class="photo-gallery">
-        {% for photo in sorted_photos %}
-          <img src="{{ url_for('static', filename=photo.file_path.replace('static/', '') ) }}" alt="{{ photo.caption }}" class="route-photo-item">
-        {% endfor %}
-      </div>
-    {% endif %}
+
+
+    <div class="route_creator_container">
+      <a href="/user/{{ creator.id }}" class="route_creator">
+      {% if creator.avatar_url %}
+          <img src="{{ creator.avatar_url or url_for('static', filename='default-avatar.png') }}" 
+               alt="Аватар пользователя" 
+               style="width: 40px; height: 40px; border-radius: 50%;">
+      {% else %}
+
+          <img src="{{ url_for('static', filename='images/default-avatar.png') }}"
+               alt="Аватар пользователя" 
+               style="width: 40px; height: 40px; border-radius: 50%;">
+      {% endif %}
+      <p><b>{{ creator.username }}</b></p>
+    </a>
+    </div>
+
+<br><hr><br>
+
     
     <p class="desc">{{ route.description }}</p>
     
 
 
-
+    <br>
     <hr>
     <br>
 
@@ -124,7 +137,7 @@
       <button id="load-comments" class="btn">Показать комментарии</button>
       <div id="comments-container"></div>
     </div>
-    
+    <br>
     <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
   </section>
   <footer>

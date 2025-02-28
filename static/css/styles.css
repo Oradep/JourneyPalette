@@ -8,20 +8,25 @@
   box-sizing: border-box;
 }
 
-
+/* Задаём базовую верстку для страницы */
+html {
+  height: 100%;
+}
 body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   font-family: 'Inter', sans-serif;
-  background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
+  background: #1a1a1a;
   color: #e0e0e0;
   line-height: 1.6;
 }
-
 
 /* Шапка сайта */
 header {
   background: linear-gradient(135deg, #222831, #393e46);
   color: #fff;
-  padding: 10px 0 10px 0;
+  padding: 10px 0;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   border-bottom: 2px solid #00ffcc;
 }
@@ -33,7 +38,6 @@ header {
   gap: 12px; 
 }
 
-
 .header-container {
   display: flex;
   justify-content: space-between;
@@ -41,13 +45,13 @@ header {
   max-width: 1100px;
   margin: 0 auto;
 }
-.site-title{
+.site-title {
   display: flex; 
   justify-content: flex-start; 
   align-items: center; 
   gap: 12px; 
 }
-.route-title{
+.route-title {
   font-size: 2em;
 }
 .create-route-btn, .profile-link, .login-btn, .admin-btn {
@@ -59,18 +63,11 @@ header {
   font-weight: 600;
   transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
 }
-
 .create-route-btn:hover, .profile-link:hover, .login-btn:hover {
   background: linear-gradient(135deg, #d84315, #bf360c);
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(255, 87, 34, 0.5);
 }
-
-
-
-
-
-
 
 /* Кнопки выхода и главного меню */
 .exit-btn, .main-menu-btn {
@@ -82,28 +79,26 @@ header {
   font-weight: 600;
   transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
 }
-
 .exit-btn:hover, .main-menu-btn:hover {
   background: linear-gradient(135deg, #c51162, #880e4f);
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(255, 23, 68, 0.5);
 }
 
-
+/* Стили для footer текста */
 footer p {
   color: #ffffff; /* Цвет текста "Все права защищены" соответствует цвету шапки */
   font-size: 0.9em;
 }
 
-section{
-  margin: 0 400px 0 400px;
-
+section {
+  margin: 0 400px;
 }
 
-section .desc{
+section .desc {
   font-size: 1.2em;
 }
-section span{
+section span {
   font-size: 0.8em;
 }
 .left-section {
@@ -111,13 +106,11 @@ section span{
   align-items: center;
   gap: 15px;
 }
-
 .left-section h1 {
   font-size: 2em;
   margin: 0;
   font-weight: 700;
 }
-
 .create-route-btn {
   background-color: #ff8c00;
   color: #fff;
@@ -127,21 +120,16 @@ section span{
   font-weight: 600;
   transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
-
 .create-route-btn:hover {
   background-color: #e07a00;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
-
-
-
 .right-section {
   display: flex;
   align-items: center;
   gap: 15px;
 }
-
 .profile-link,
 .login-btn {
   background-color: #ff8c00;
@@ -152,14 +140,12 @@ section span{
   font-weight: 600;
   transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
-
 .profile-link:hover,
 .login-btn:hover {
   background-color: #e07a00;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
-
 .avatar img {
   width: 50px;
   height: 50px;
@@ -168,17 +154,28 @@ section span{
   border: 2px solid #fff;
   transition: transform 0.2s;
 }
-
 .avatar img:hover {
   transform: scale(1.1);
   cursor: pointer;
 }
+
+.avatar#avatar-container-profile {
+  width: 228px;
+  height: auto;
+  background: none !important;
+  margin: auto;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px ;
+}
+
 
 /* Основной контейнер */
 main {
   max-width: 1200px;
   margin: 20px auto;
   padding: 0 15px;
+  flex: 1; 
 }
 
 /* Карточка маршрута */
@@ -195,36 +192,29 @@ main {
   z-index: 1;
   overflow: visible;
 }
-
 .route-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
 }
-
 .route-card a {
   text-decoration: none;
   color: #badfff;
   display: block;
 }
-
 .route-card h2 {
   text-decoration: none;
   margin-bottom: 10px;
   color: #f7fbff;
   font-weight: 700;
 }
-
 .route-card p {
   text-decoration: none;
   margin-bottom: 10px;
   color: #e7faff;
 }
-
-
-.route-info{
+.route-info {
   text-decoration: none;
 }
-
 .meta-info {
   font-size: 0.9em;
   color: #a7a7a7;
@@ -238,7 +228,6 @@ main {
   margin-right: 10px;
   z-index: 1010;
 }
-
 .export-menu button {
   background-color: #ff8c00;
   color: #fff;
@@ -249,13 +238,11 @@ main {
   font-size: 0.9em;
   transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
-
 .export-menu button:hover {
   background-color: #e07a00;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
-
 .export-options {
   display: none;
   position: absolute;
@@ -271,20 +258,16 @@ main {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   line-height: 0.8;
 }
-
 .export-options a {
   color: #003366;
   text-decoration: none;
   display: block;
   padding: 5px 10px;
   transition: background-color 0.2s;
-
 }
-
 .export-options a:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
-
 .export-menu:hover .export-options {
   display: block;
 }
@@ -296,17 +279,14 @@ main {
   gap: 5px;
   align-items: center;
 }
-
 .star-rating input[type="radio"] {
   display: none;
 }
-
 .star-rating label {
   color: #ccc;
   cursor: pointer;
   transition: color 0.2s;
 }
-
 .star-rating input[type="radio"]:checked ~ label,
 .star-rating label:hover,
 .star-rating label:hover ~ label {
@@ -326,7 +306,6 @@ main {
   font-size: 0.9em;
   transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
-
 .btn:hover {
   background-color: #1e7a1e;
   transform: translateY(-2px);
@@ -342,21 +321,16 @@ main {
   border-radius: 12px;
   overflow: hidden;
 }
-
 .hidden {
   display: none;
 }
-
-
 .photo-gallery {
   overflow-x: auto;
   white-space: nowrap;
   margin: 10px 0;
   padding-bottom: 10px;
 }
-
-
-.rating{
+.rating {
   font-size: 1.5em;
 }
 .route-photo-item {
@@ -368,7 +342,6 @@ main {
   border: 1px solid #ddd;
   transition: transform 0.2s;
 }
-
 .route-photo-item:hover {
   transform: scale(1.05);
 }
@@ -379,7 +352,6 @@ main {
   margin-bottom: 10px;
   border-bottom: 2px solid #ddd;
 }
-
 .tab {
   padding: 10px 20px;
   cursor: pointer;
@@ -391,7 +363,6 @@ main {
   border-top-right-radius: 8px;
   transition: background 0.2s;
 }
-
 .tab.active {
   background: #fff;
   border-bottom: 2px solid #fff;
@@ -413,13 +384,12 @@ footer {
   color: #fff;
   text-align: center;
   padding: 20px;
-  margin-top: 40px;
+  margin-top: auto; /* Прижимает футер к низу страницы */
   box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
   border-top: 2px solid #00ffcc;
 }
 
-
-
+/* Остальные стили */
 .profile-section {
   background: #3e4550 !important;
   margin: auto;
@@ -427,23 +397,18 @@ footer {
   border-color: #000000 !important;
   border-radius: 10px;
 }
-
-
-.profile-section h2{
+.profile-section h2 {
   color: #e0f0ff;
 }
-.profile-section a{
+.profile-section a {
   color: #9bceff;
 }
-.profile-section p{
+.profile-section p {
   color: #dadada;
 }
-.profile-section ul{
+.profile-section ul {
   list-style: none;
 }
-
-
-
 .comment-form-container {
   background: #2c2f36;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -452,14 +417,12 @@ footer {
   margin: 20px 0;
   max-width: 600px;
 }
-
 .comment-form-container h2 {
   color: #e0e0e0;
   font-size: 1.2em;
   margin-bottom: 10px;
   font-weight: 500;
 }
-
 .comment-form-container textarea {
   width: 100%;
   min-height: 80px;
@@ -472,11 +435,9 @@ footer {
   font-size: 0.9em;
   resize: vertical;
 }
-
 .comment-form-container textarea::placeholder {
   color: rgba(255, 255, 255, 0.5);
 }
-
 .back.btn {
   position: fixed;
   bottom: 15px;
@@ -490,14 +451,10 @@ footer {
   z-index: 1000; 
   transition: background 0.2s, transform 0.2s;
 }
-
 .back.btn:hover {
   background: #555;
   transform: translateY(-2px);
 }
-
-
-
 
 /* Адаптивность */
 @media (max-width: 768px) {
@@ -518,42 +475,35 @@ footer {
     margin-bottom: 5px;
   }
 }
-
-.private_checkbox{
+.private_checkbox {
   display: flex; 
   justify-content: flex-start; 
   align-items: center; 
   gap: 10px; 
 }
-.private_checkbox input{
-  top:100%
+.private_checkbox input {
+  top: 100%;
 }
-
 form {
   margin: 20px auto;
   max-width: 1150px;
 }
-
-.visited form{
+.visited form {
   margin: 15px 0 0 0;
   font-size: 1.3em;
 }
-
-section .export-menu{
+section .export-menu {
   font-size: 1.2em;
 }
-
 form div {
   margin-bottom: 15px;
 }
-
 form label {
   display: block;
   margin-bottom: 5px;
   color: #e0e0e0;
   font-weight: 500;
 }
-
 form input[type="text"],
 form input[type="password"],
 form textarea,
@@ -565,18 +515,14 @@ form input[type="file"] {
   border-radius: 4px;
   color: #e0e0e0;
 }
-
 form textarea {
   resize: vertical;
   min-height: 80px;
 }
-
 form input[type="checkbox"] {
   vertical-align: middle;
   margin-right: 5px;
 }
-
-
 form button,
 form .btn {
   background: #228b22;
@@ -588,20 +534,17 @@ form .btn {
   font-size: 0.9em;
   transition: background 0.2s, transform 0.2s;
 }
-
 form button:hover,
 form .btn:hover {
   background: #1e7a1e;
   transform: translateY(-2px);
 }
-
 .history-list {
   margin: 20px auto;
   max-width: 600px;
   padding: 0;
   list-style: none;
 }
-
 .history-list li {
   background: #2c2f36;
   padding: 10px;
@@ -610,10 +553,6 @@ form .btn:hover {
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #e0e0e0;
 }
-
-
-
-
 .delete-photo-btn {
   position: absolute;
   top: 2px;
@@ -630,30 +569,21 @@ form .btn:hover {
   font-size: 14px;
   padding: 0;
 }
-
-
-
-
-.auth-container{
+.auth-container {
   justify-items: center;
-  margin: 20px 0 20px 0;
+  margin: 20px 0;
 }
-.auth-container .form-container{
+.auth-container .form-container {
   background: #222831 !important;
   min-width: 500px;
 }
-.auth-container h2{
+.auth-container h2 {
   text-align: center;
 }
-
-
-.auth-container .tab{
+.auth-container .tab {
   background: #222831 !important;
 }
-
-
-
-.header-container#login-header{
+.header-container#login-header {
   justify-content: center;
   text-align: center;
   margin: auto;
@@ -680,3 +610,42 @@ form .btn:hover {
 }
 
 
+
+
+
+.route_creator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 20px 5px 10px;
+  background-color: #424242;
+  border-radius: 20px;
+  transition: box-shadow 0.3s ease, background-color 0.3s ease;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+
+.route_creator img {
+  width: 30px;
+  height: auto;
+  border-radius: 50%;
+
+}
+
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+
+.route_creator:hover {
+  background-color: #525151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.route_creator_container{
+  width:fit-content;
+  
+}

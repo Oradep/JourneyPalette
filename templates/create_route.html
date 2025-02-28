@@ -15,7 +15,9 @@
         {% if current_user.is_authenticated %}
           <div class="user-info">
             <div class="user-details">
-              <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">{{ current_user.username }}</a>
+              <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">
+                {{ current_user.username }}
+              </a>
             </div>
             <div class="avatar">
               {% if current_user.avatar_url %}
@@ -32,22 +34,28 @@
     </div>
   </header>
 
-  <form action="{{ url_for('create_route') }}" method="POST">
-    <div>
-      <h1>Создание маршрута</h1>
-      <label for="title">Название маршрута:</label>
-      <input type="text" name="title" id="title" required>
-    </div>
-    <div>
-      <label for="description">Описание маршрута:</label>
-      <textarea name="description" id="description" required></textarea>
-    </div>
-    <div>
-      <label for="is_private">Приватный маршрут:</label>
-      <input type="checkbox" name="is_private" id="is_private">
-    </div>
-    <button type="submit">Создать</button>
-  </form>
-  <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
+  <main>
+    <form action="{{ url_for('create_route') }}" method="POST">
+      <div>
+        <h1>Создание маршрута</h1>
+        <label for="title">Название маршрута:</label>
+        <input type="text" name="title" id="title" required>
+      </div>
+      <div>
+        <label for="description">Описание маршрута:</label>
+        <textarea name="description" id="description" required></textarea>
+      </div>
+      <div>
+        <label for="is_private">Приватный маршрут:</label>
+        <input type="checkbox" name="is_private" id="is_private">
+      </div>
+      <button type="submit">Создать</button>
+    </form>
+    <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
+  </main>
+
+  <footer>
+    <p>© 2025 Авторские права не защищены, пж не нарушайте</p>
+  </footer>
 </body>
 </html>

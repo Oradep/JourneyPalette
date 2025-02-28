@@ -22,6 +22,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+
+
 # Пользователь
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -30,6 +32,7 @@ class User(db.Model, UserMixin):
     avatar_url = db.Column(db.String(300)) 
     is_moderator = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
+    
 
 # Маршрут
 class Route(db.Model):
@@ -206,12 +209,13 @@ def index():
 @app.route('/route/<int:route_id>')
 def view_route(route_id):
     route = Route.query.get_or_404(route_id)
+    creator = User.query.get(route.user_id)
     user_rating = None
     if current_user.is_authenticated:
         rating_obj = Rating.query.filter_by(user_id=current_user.id, route_id=route.id).first()
         user_rating = rating_obj.rating if rating_obj else None
     route_landmarks = [landmark.to_dict() for landmark in route.landmarks]
-    return render_template('route_detail.html', route=route, user_rating=user_rating, route_landmarks=route_landmarks)
+    return render_template('route_detail.html', route=route, user_rating=user_rating, route_landmarks=route_landmarks, creator=creator)
 
 
 # Создание нового маршрута
