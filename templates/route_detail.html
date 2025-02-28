@@ -40,7 +40,14 @@
     </div>
 
     <!-- Галерея фотографий маршрута -->
-
+    {% if route.photos and route.photos|length > 0 %}
+    {% set sorted_photos = route.photos|sort(attribute='order_index') %}
+    <div class="photo-gallery">
+      {% for photo in sorted_photos %}
+        <img src="{{ url_for('static', filename=photo.file_path.replace('static/', '') ) }}" alt="{{ photo.caption }}" class="route-photo-item">
+      {% endfor %}
+    </div>
+  {% endif %}
 
     <div class="route_creator_container">
       <a href="/user/{{ creator.id }}" class="route_creator">
@@ -104,6 +111,8 @@
     
     <!-- Контейнер для карты -->
     <div id="map"></div>
+
+
     <div class="export-menu">
       <button>Экспорт</button>
       <div class="export-options">
@@ -112,12 +121,11 @@
         <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">KMZ</a>
       </div>
     </div>
-    <!-- Скрытые поля с данными маршрута.
-         Если данные в базе уже сохранены как JSON-строки, выводите их через safe, без tojson -->
+    <br>
     <input type="hidden" id="points" value='{{ route.points|safe if route.points else "[]" }}'>
     <input type="hidden" id="allMarkers" value='{{ route.allMarkers|safe if route.allMarkers else "[]" }}'>
     <input type="hidden" id="landmarks" value='{{ route_landmarks | tojson | safe }}'>
-    <!-- Скрытое поле для route.id (если нужно) -->
+    <!-- Скрытое поле для route.id-->
     <input type="hidden" id="route-id" value="{{ route.id }}">
     
     {% if current_user.is_authenticated %}
@@ -131,7 +139,7 @@
       </form>
     </div>
     {% endif %}
-    
+    <br>
     <!-- Комментарии -->
     <div id="comments-section">
       <button id="load-comments" class="btn">Показать комментарии</button>
