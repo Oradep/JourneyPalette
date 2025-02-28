@@ -13,7 +13,7 @@
   <header>
     <div class="header-container">
       <div class="site-title">
-        <h1>Редактор маршрута</h1>
+        <h1>Палитра Путешествий</h1>
       </div>
       <div class="user-actions">
         {% if current_user.is_authenticated %}
@@ -35,7 +35,9 @@
       </div>
     </div>
   </header>
+
   <form action="{{ url_for('edit_route', route_id=route.id) }}" method="POST" enctype="multipart/form-data">
+    <h1>Редактор маршрута</h1>
     <div>
       <label for="title">Название маршрута:</label>
       <input type="text" name="title" id="title" value="{{ route.title }}" required>

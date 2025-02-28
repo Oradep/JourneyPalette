@@ -9,7 +9,7 @@
   <header>
     <div class="header-container">
       <div class="site-title">
-        <h1>История изменений маршрута: "{{ route.title }}"</h1>
+        <h1>Палитра Путешествий</h1>
       </div>
       <div class="user-actions">
         {% if current_user.is_authenticated %}
@@ -31,8 +31,12 @@
       </div>
     </div>
   </header>
+
   {% if histories %}
   <ul class="history-list">
+    
+  <h1>История изменений маршрута: "{{ route.title }}"</h1>
+  <br>
     {% for history in histories %}
       <li>– {{ history.change_desc }}</li>
     {% endfor %}

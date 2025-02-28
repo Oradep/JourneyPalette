@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+    .tabs .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    .tabs .tab.active {
+      font-weight: bold;
+      border-bottom: 2px solid #333;
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    input[type="text"],
+    input[type="password"] { width: 100%; padding: 4px; box-sizing: border-box; }
+    .action-buttons { display: flex; gap: 5px; }
+    form { margin: 0; }
+  </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+          <div class="site-title">
+            <h1>Палитра Путешествий</h1>
+          </div>
+          <div class="user-actions">
+            {% if current_user.is_authenticated %}
+              <div class="user-info">
+                <div class="user-details">
+                  <a class="profile-link" href="{{ url_for('user_profile', user_id=current_user.id) }}">{{ current_user.username }}</a>
+                </div>
+                <div class="avatar">
+                  {% if current_user.avatar_url %}
+                    <img src="{{ current_user.avatar_url }}" alt="Аватар">
+                  {% else %}
+                    <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Аватар">
+                  {% endif %}
+            {% endif %}
+                </div>
+              </div>
+          </div>
+        </div>
+      </header>
+
+  <main>
+    <div class="admin-container">
+      <h2>Админ-панель</h2>
+      <div class="auth-container">
+        <div class="tabs">
+          <div id="tab-users" class="tab active">Пользователи</div>
+          <div id="tab-routes" class="tab">Маршруты</div>
+          <div id="tab-landmarks" class="tab">Достопримечательности</div>
+          <div id="tab-photos" class="tab">Фотографии</div>
+          <div id="tab-comments" class="tab">Комментарии</div>
+          <div id="tab-changes" class="tab">История изменений</div>
+          <div id="tab-visits" class="tab">Посещения</div>
+          <div id="tab-ratings" class="tab">Оценки</div>
+        </div>
+      </div>
+      <div class="tab-content">
+        <!-- Таблица пользователей -->
+        <div id="content-users" class="tab-pane active">
+          <h3>Пользователи</h3>
+          <div class="admin-container">
+            <h2>Редактор пользователей</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Имя пользователя</th>
+                  <th>Пароль</th>
+                  <th>Avatar URL</th>
+                  <th>Модератор</th>
+                  <th>Админ</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr>
+                  <!-- Каждая строка – это форма для редактирования пользователя -->
+                  <form action="{{ url_for('admin_edit_user', user_id=user.id) }}" method="POST">
+                    <td>{{ user.id }}</td>
+                    <td>
+                      <input type="text" name="username" value="{{ user.username }}" required>
+                    </td>
+                    <td>
+                      <input type="text" name="password" value="{{ user.password }}">
+                    </td>
+                    <td>
+                      <input type="text" name="avatar_url" value="{{ user.avatar_url or '' }}">
+                    </td>
+                    <td>
+                      <input type="checkbox" name="is_moderator" value="1" {% if user.is_moderator %}checked{% endif %}>
+                    </td>
+                    <td>
+                      <input type="checkbox" name="is_admin" value="1" {% if user.is_admin %}checked{% endif %}>
+                    </td>
+                    <td class="action-buttons">
+                      <button type="submit" class="btn">Сохранить</button>
+                      <a href="{{ url_for('admin_delete_user', user_id=user.id) }}" class="btn" onclick="return confirm('Удалить пользователя?')">Удалить</a>
+                    </td>
+                  </form>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <h3>Добавить нового пользователя</h3>
+            <form action="{{ url_for('admin_create_user') }}" method="POST">
+              <label>Имя пользователя:
+                <input type="text" name="username" required>
+              </label>
+              <br>
+              <label>Пароль:
+                <input type="password" name="password" required>
+              </label>
+              <br>
+              <label>Avatar URL:
+                <input type="text" name="avatar_url">
+              </label>
+              <br>
+              <label>Модератор:
+                <input type="checkbox" name="is_moderator" value="1">
+              </label>
+              <br>
+              <label>Админ:
+                <input type="checkbox" name="is_admin" value="1">
+              </label>
+              <br>
+              <button type="submit">Добавить пользователя</button>
+            </form>
+          </div>
+        </div>
+        <!-- Таблица маршрутов -->
+        <div id="content-routes" class="tab-pane">
+          <h3>Маршруты</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>ID пользователя</th>
+                <th>Одобрен</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for route in routes %}
+              <tr>
+                <td>{{ route.id }}</td>
+                <td>{{ route.title }}</td>
+                <td>{{ route.description }}</td>
+                <td>{{ route.user_id }}</td>
+                <td>{{ route.moderated }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <!-- Таблица достопримечательностей -->
+        <div id="content-landmarks" class="tab-pane">
+          <h3>Достопримечательности</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Широта</th>
+                <th>Долгота</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for landmark in landmarks %}
+              <tr>
+                <td>{{ landmark.id }}</td>
+                <td>{{ landmark.name }}</td>
+                <td>{{ landmark.description }}</td>
+                <td>{{ landmark.lat }}</td>
+                <td>{{ landmark.lng }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <!-- Таблица фотографий -->
+        <div id="content-photos" class="tab-pane">
+          <h3>Фотографии</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Путь к файлу</th>
+                <th>Подпись</th>
+                <th>ID маршрута</th>
+                <th>Порядок</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for photo in photos %}
+              <tr>
+                <td>{{ photo.id }}</td>
+                <td>{{ photo.file_path }}</td>
+                <td>{{ photo.caption }}</td>
+                <td>{{ photo.route_id }}</td>
+                <td>{{ photo.order_index }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <!-- Таблица комментариев -->
+        <div id="content-comments" class="tab-pane">
+          <h3>Комментарии</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Текст</th>
+                <th>Оценка</th>
+                <th>ID пользователя</th>
+                <th>ID маршрута</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for comment in comments %}
+              <tr>
+                <td>{{ comment.id }}</td>
+                <td>{{ comment.text }}</td>
+                <td>{{ comment.rating }}</td>
+                <td>{{ comment.user_id }}</td>
+                <td>{{ comment.route_id }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <!-- Таблица истории изменений -->
+        <div id="content-changes" class="tab-pane">
+          <h3>История изменений</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Описание изменений</th>
+                <th>ID маршрута</th>
+                <th>Сессия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for change in changes %}
+              <tr>
+                <td>{{ change.id }}</td>
+                <td>{{ change.change_desc }}</td>
+                <td>{{ change.route_id }}</td>
+                <td>{{ change.session }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <!-- Таблица посещений -->
+        <div id="content-visits" class="tab-pane">
+          <h3>Посещения</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>ID пользователя</th>
+                <th>ID маршрута</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for visit in visits %}
+              <tr>
+                <td>{{ visit.id }}</td>
+                <td>{{ visit.user_id }}</td>
+                <td>{{ visit.route_id }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <!-- Таблица оценок -->
+        <div id="content-ratings" class="tab-pane">
+          <h3>Оценки</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>ID пользователя</th>
+                <th>ID маршрута</th>
+                <th>Оценка</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rating in ratings %}
+              <tr>
+                <td>{{ rating.id }}</td>
+                <td>{{ rating.user_id }}</td>
+                <td>{{ rating.route_id }}</td>
+                <td>{{ rating.rating }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy;PVBand {{ current_year if current_year is defined else 2025 }}</p>
+    <p>Авторские права не защищены, пж не нарушайте</p>
+  </footer>
+
+
+  <a class="back btn" href="{{ url_for('index') }}">Назад на главную</a>
+  <script>
+    // Скрипт для переключения вкладок
+    document.querySelectorAll('.tabs .tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+
+        let tabId = this.id.replace('tab-', 'content-');
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+          pane.classList.remove('active');
+          if(pane.id === tabId) {
+            pane.classList.add('active');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -47,7 +47,10 @@ header {
   align-items: center; 
   gap: 12px; 
 }
-.create-route-btn, .profile-link, .login-btn {
+.route-title{
+  font-size: 2em;
+}
+.create-route-btn, .profile-link, .login-btn, .admin-btn {
   background: linear-gradient(135deg, #ff5722, #e64a19);
   color: #fff;
   padding: 10px 20px;
@@ -62,6 +65,8 @@ header {
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(255, 87, 34, 0.5);
 }
+
+
 
 
 
@@ -91,12 +96,12 @@ footer p {
 }
 
 section{
-  margin: 0 200px 0 200px;
+  margin: 0 400px 0 400px;
 
 }
 
 section .desc{
-  font-size: 1.5em;
+  font-size: 1.2em;
 }
 section span{
   font-size: 0.8em;
@@ -331,7 +336,7 @@ main {
 /* Контейнер карты */
 #map {
   width: 100%;
-  height: 400px;
+  height: 600px;
   margin: 20px 0;
   border: 1px solid #ccc;
   border-radius: 12px;
@@ -342,7 +347,7 @@ main {
   display: none;
 }
 
-/* Галерея фотографий маршрута */
+
 .photo-gallery {
   overflow-x: auto;
   white-space: nowrap;
@@ -350,6 +355,10 @@ main {
   padding-bottom: 10px;
 }
 
+
+.rating{
+  font-size: 1.5em;
+}
 .route-photo-item {
   display: inline-block;
   width: 200px;
@@ -523,6 +532,15 @@ footer {
 form {
   margin: 20px auto;
   max-width: 1150px;
+}
+
+.visited form{
+  margin: 15px 0 0 0;
+  font-size: 1.3em;
+}
+
+section .export-menu{
+  font-size: 1.2em;
 }
 
 form div {

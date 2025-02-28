@@ -9,7 +9,7 @@
   <header>
     <div class="header-container">
       <div class="site-title">
-        <h1>Создание маршрута</h1>
+        <h1>Палитра Путешествий</h1>
       </div>
       <div class="user-actions">
         {% if current_user.is_authenticated %}
@@ -31,8 +31,10 @@
       </div>
     </div>
   </header>
+
   <form action="{{ url_for('create_route') }}" method="POST">
     <div>
+      <h1>Создание маршрута</h1>
       <label for="title">Название маршрута:</label>
       <input type="text" name="title" id="title" required>
     </div>

@@ -29,6 +29,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(200), nullable=False)
     avatar_url = db.Column(db.String(300)) 
     is_moderator = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
 # Маршрут
 class Route(db.Model):
@@ -138,11 +139,6 @@ class Rating(db.Model):
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
     rating = db.Column(db.Integer)
 
-# Класс для лайков
-class Like(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
 
 @app.route('/save_markers', methods=['POST'])
 def save_markers():
@@ -240,7 +236,7 @@ def create_route():
 @login_required
 def edit_route(route_id):
     route = Route.query.get_or_404(route_id)
-    if route.user_id != current_user.id:
+    if route.user_id != current_user.id and not current_user.is_admin:
         flash("Нет доступа к редактированию данного маршрута")
         return redirect(url_for('index'))
     if request.method == 'POST':
@@ -261,11 +257,13 @@ def edit_route(route_id):
 @login_required
 def route_history(route_id):
     route = Route.query.get_or_404(route_id)
-    if route.user_id != current_user.id:
+    if route.user_id != current_user.id and not current_user.is_admin:
         flash("У вас нет доступа к просмотру истории этого маршрута")
         return redirect(url_for('index'))
-    histories = route.changes
+    # Обратный порядок
+    histories = sorted(route.changes, key=lambda h: h.id, reverse=True)
     return render_template('history.html', route=route, histories=histories)
+
 
 # Добавление комментария и оценки
 @app.route('/route/<int:route_id>/comment', methods=['POST'])
@@ -515,6 +513,12 @@ def upload_route_images():
         except Exception as e:
             db.session.rollback()
             return jsonify(success=False, error=str(e))
+        
+    change_desc = f"Добавлены фото маршрута"
+    change = ChangeHistory(change_desc=change_desc, route=route)
+    db.session.add(change)
+    db.session.commit()
+    
     return jsonify(success=True, files=uploaded_files)
 
 
@@ -541,6 +545,10 @@ def delete_photo(photo_id):
     except Exception as e:
         db.session.rollback()
         return jsonify(success=False, error="Ошибка удаления записи: " + str(e))
+    change_desc = f"Удалены фото маршрута"
+    change = ChangeHistory(change_desc=change_desc)
+    db.session.add(change)
+    db.session.commit()
     return jsonify(success=True)
 
 
@@ -560,6 +568,7 @@ def update_photo_order():
     except Exception as e:
         db.session.rollback()
         return jsonify(success=False, error=str(e))
+
     return jsonify(success=True)
 
 
@@ -652,19 +661,103 @@ def approve_route(route_id):
     flash("Маршрут одобрен")
     return redirect(url_for('index'))
 
-@app.route('/moderation/reject/<int:route_id>', methods=['POST'])
+
+
+
+
+    
+@app.route('/admin')
 @login_required
-def reject_route(route_id):
-    if not current_user.is_moderator:
-        flash("Нет доступа к модерации")
+def admin():
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    # Получаем данные из базы для отображения в админке
+    users = User.query.all()
+    routes = Route.query.all()
+    landmarks = Landmark.query.all()
+    photos = Photo.query.all()
+    comments = Comment.query.all()
+    changes = ChangeHistory.query.all()
+    visits = Visit.query.all()
+    ratings = Rating.query.all()
+
+    return render_template('admin.html',
+                           users=users,
+                           routes=routes,
+                           landmarks=landmarks,
+                           photos=photos,
+                           comments=comments,
+                           changes=changes,
+                           visits=visits,
+                           ratings=ratings,)
+
+
+
+
+@app.route('/admin/edit/<int:user_id>', methods=['POST'])
+@login_required
+def admin_edit_user(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    user = User.query.get_or_404(user_id)
+    user.username = request.form.get('username')
+    # Если указан новый пароль, обновляем его
+    new_password = request.form.get('password')
+    if new_password:
+        user.password = new_password
+    user.avatar_url = request.form.get('avatar_url')
+    user.is_moderator = True if request.form.get('is_moderator') == '1' else False
+    user.is_admin = True if request.form.get('is_admin') == '1' else False
+    db.session.commit()
+    flash('Пользователь обновлён', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/delete/<int:user_id>')
+@login_required
+def admin_delete_user(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('Пользователь удалён', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/create', methods=['POST'])
+@login_required
+def admin_create_user():
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    username = request.form.get('username')
+    password = request.form.get('password')
+    avatar_url = request.form.get('avatar_url')
+    is_moderator = True if request.form.get('is_moderator') == '1' else False
+    is_admin = True if request.form.get('is_admin') == '1' else False
+    if not username or not password:
+        flash('Имя пользователя и пароль обязательны', 'error')
+        return redirect(url_for('admin'))
+    new_user = User(username=username,
+                    password=generate_password_hash(password),
+                    avatar_url=avatar_url,
+                    is_moderator=is_moderator,
+                    is_admin=is_admin)
+    db.session.add(new_user)
+    db.session.commit()
+    flash('Новый пользователь добавлен', 'success')
+    return redirect(url_for('admin'))
+
+
+
+@app.route('/admin/delete_route/<int:route_id>', methods=['POST'])
+@login_required
+def delete_route(route_id):
+    if not current_user.is_admin:
         return redirect(url_for('index'))
     route = Route.query.get_or_404(route_id)
     db.session.delete(route)
     db.session.commit()
-    flash("Маршрут отклонён")
+    flash("Маршрут удалён")
     return redirect(url_for('index'))
-
-
 
 
 if __name__ == '__main__':
@@ -672,7 +765,7 @@ if __name__ == '__main__':
         db.create_all()
         admin = User.query.filter_by(username="admin").first()
         if not admin:
-            admin = User(username="admin", password="superduperadmpass", is_moderator=True)
+            admin = User(username="admin", password="superduperadmpass", is_moderator=True, is_admin=True)
             db.session.add(admin)
             db.session.commit()
             print("Администратор создан")

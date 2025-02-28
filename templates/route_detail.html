@@ -10,7 +10,7 @@
     <header>
       <div class="header-container">
         <div class="site-title">
-          <h1>{{ route.title }}</h1>
+          <h1>Палитра Путешествий</h1>
         </div>
         <div class="user-actions">
           {% if current_user.is_authenticated %}
@@ -34,6 +34,10 @@
     </header>
   
   <section>
+    <div class="route-title">
+      <h1>{{ route.title }}</h1>
+    </div>
+    <div class="route_creator"></div>
     <!-- Галерея фотографий маршрута -->
     {% if route.photos and route.photos|length > 0 %}
       {% set sorted_photos = route.photos|sort(attribute='order_index') %}
@@ -46,15 +50,23 @@
     
     <p class="desc">{{ route.description }}</p>
     
-    <!-- Отметка посещения -->
-    <!-- {% if current_user.is_authenticated %}
-      <form action="{{ url_for('mark_visit', route_id=route.id) }}" method="POST" id="visit-form">
-        <button type="submit" class="btn">Я посетил маршрут</button>
-      </form>
-    {% endif %} -->
-    
-    <!-- Блок лайков и рейтинга -->
-    <div>
+
+
+
+    <hr>
+    <br>
+
+
+
+    <!-- <div class="visited">
+        {% if current_user.is_authenticated %}
+        <form action="{{ url_for('mark_visit', route_id=route.id) }}" method="POST">
+          <button type="submit" class="btn">Я посетил маршрут</button>
+        </form>
+      {% endif %}
+    </div> -->
+      
+    <div class="rating">
       <span>Оценок: {{ route.ratings_count }}</span> |
       <span>Средний рейтинг: {{ route.average_rating }} ★</span>
       {% if current_user.is_authenticated %}
@@ -75,6 +87,10 @@
       </form>
       {% endif %}
     </div>
+
+    
+    <!-- Контейнер для карты -->
+    <div id="map"></div>
     <div class="export-menu">
       <button>Экспорт</button>
       <div class="export-options">
@@ -83,10 +99,6 @@
         <a href="{{ url_for('export_route', route_id=route.id, format='kmz') }}">KMZ</a>
       </div>
     </div>
-    
-    <!-- Контейнер для карты -->
-    <div id="map"></div>
-    
     <!-- Скрытые поля с данными маршрута.
          Если данные в базе уже сохранены как JSON-строки, выводите их через safe, без tojson -->
     <input type="hidden" id="points" value='{{ route.points|safe if route.points else "[]" }}'>
