@@ -1,6 +1,7 @@
-Flask=2.0
-Flask-SQLAlchemy=2.5
-Flask-Login=0.5
-requests=2.25
-beautifulsoup4=4.9
-Werkzeug=2.0
+Flask==2.0
+Flask-SQLAlchemy==2.5.1
+Flask-Login==0.5
+SQLAlchemy==1.4.49
+requests==2.25
+beautifulsoup4==4.9
+Werkzeug==2.0
