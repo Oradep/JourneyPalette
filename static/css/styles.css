@@ -161,7 +161,7 @@ section span {
 
 .avatar#avatar-container-profile {
   width: 228px;
-  height: auto;
+  height: 228px;
   background: none !important;
   margin: auto;
   display: flex;
