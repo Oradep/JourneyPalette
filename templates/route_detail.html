@@ -39,15 +39,7 @@
       <h1>{{ route.title }}</h1>
     </div>
 
-    <!-- Галерея фотографий маршрута -->
-    {% if route.photos and route.photos|length > 0 %}
-    {% set sorted_photos = route.photos|sort(attribute='order_index') %}
-    <div class="photo-gallery">
-      {% for photo in sorted_photos %}
-        <img src="{{ url_for('static', filename=photo.file_path.replace('static/', '') ) }}" alt="{{ photo.caption }}" class="route-photo-item">
-      {% endfor %}
-    </div>
-  {% endif %}
+
 
     <div class="route_creator_container">
       <a href="/user/{{ creator.id }}" class="route_creator">
@@ -64,8 +56,17 @@
       <p><b>{{ creator.username }}</b></p>
     </a>
     </div>
+    <br><hr><br>
+        <!-- Галерея фотографий маршрута -->
+        {% if route.photos and route.photos|length > 0 %}
+        {% set sorted_photos = route.photos|sort(attribute='order_index') %}
+        <div class="photo-gallery">
+          {% for photo in sorted_photos %}
+            <img src="{{ url_for('static', filename=photo.file_path.replace('static/', '') ) }}" alt="{{ photo.caption }}" class="route-photo-item">
+          {% endfor %}
+        </div>
+      {% endif %}
 
-<br><hr><br>
 
     
     <p class="desc">{{ route.description }}</p>

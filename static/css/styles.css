@@ -329,14 +329,15 @@ main {
   white-space: nowrap;
   margin: 10px 0;
   padding-bottom: 10px;
+
 }
 .rating {
   font-size: 1.5em;
 }
 .route-photo-item {
   display: inline-block;
-  width: 200px;
-  height: auto;
+  width: auto;
+  height: 200px;
   margin-right: 10px;
   border-radius: 8px;
   border: 1px solid #ddd;
